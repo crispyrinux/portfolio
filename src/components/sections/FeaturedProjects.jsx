@@ -1,4 +1,5 @@
 import ProjectCard from '../projects/ProjectCard'
+import EmptyState from '../common/EmptyState'
 import SectionHeader from '../ui/SectionHeader'
 import { fallbackProjects } from '../../data/fallbackProjects'
 
@@ -37,9 +38,11 @@ export default function FeaturedProjects() {
           ))}
         </div>
       ) : (
-        <div className="mt-8 border border-line bg-panel/75 p-6 text-sm leading-7 text-muted shadow-panel">
-          Featured projects will appear here when fallback project entries are marked as featured.
-        </div>
+        <EmptyState
+          title="No featured projects yet"
+          description="Featured projects will appear here when fallback project entries are marked as featured."
+          className="mt-8"
+        />
       )}
     </section>
   )

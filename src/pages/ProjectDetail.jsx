@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router-dom'
+import EmptyState from '../components/common/EmptyState'
 import PublicLayout from '../components/layout/PublicLayout'
-import SectionHeader from '../components/ui/SectionHeader'
 import { fallbackProjects } from '../data/fallbackProjects'
 import { getProjectSlug, normalizeArray, slugify } from '../lib/utils'
 
@@ -85,20 +85,19 @@ function ExternalLinkButton({ href, label }) {
 function NotFoundState() {
   return (
     <div className="flex min-h-[64vh] items-center justify-center">
-      <div className="w-full max-w-xl border border-line bg-panel/80 px-8 py-12 text-center shadow-panel">
-        <SectionHeader
-          eyebrow="404"
-          title="Project not found"
-          description="The project you requested is not available in the local fallback data set."
-          className="mx-auto max-w-xl text-center"
-        />
-        <Link
-          className="mt-6 inline-flex border border-accent/60 bg-accent-soft px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-panelStrong"
-          to="/#projects"
-        >
-          Return to projects
-        </Link>
-      </div>
+      <EmptyState
+        title="Project not found"
+        description="The project you requested is not available in the local fallback data set."
+        action={
+          <Link
+            className="inline-flex border border-accent/60 bg-accent-soft px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-panelStrong"
+            to="/#projects"
+          >
+            Return to projects
+          </Link>
+        }
+        className="w-full max-w-xl"
+      />
     </div>
   )
 }
