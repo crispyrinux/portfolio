@@ -1,8 +1,11 @@
+import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import EmptyState from '../components/common/EmptyState'
+import ErrorState from '../components/common/ErrorState'
+import LoadingState from '../components/common/LoadingState'
 import PublicLayout from '../components/layout/PublicLayout'
-import { fallbackProjects } from '../data/fallbackProjects'
-import { getProjectSlug, normalizeArray, slugify } from '../lib/utils'
+import { normalizeArray } from '../lib/utils'
+import { getProjectBySlug, getProjectScreenshots } from '../services/projectService'
 
 const detailBlocks = [
   { key: 'overview', label: 'Overview' },
@@ -102,17 +105,100 @@ function NotFoundState() {
   )
 }
 
+function ProjectErrorState({ message }) {
+  return (
+    <div className="flex min-h-[64vh] items-center justify-center">
+      <ErrorState
+        title="Project unavailable"
+        message={message}
+        action={
+          <Link
+            className="inline-flex border border-accent/60 bg-accent-soft px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-panelStrong"
+            to="/#projects"
+          >
+            Return to projects
+          </Link>
+        }
+        className="w-full max-w-xl"
+      />
+    </div>
+  )
+}
+
 export default function ProjectDetail() {
   const { slug } = useParams()
-  const routeSlug = slugify(slug)
+  const [project, setProject] = useState(null)
+  const [screenshots, setScreenshots] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState(null)
 
-  const project = fallbackProjects.find((item) => {
-    if (item.is_archived === true) {
-      return false
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadProject() {
+      setIsLoading(true)
+      setError(null)
+      setScreenshots([])
+
+      try {
+        const nextProject = await getProjectBySlug(slug)
+
+        if (!isMounted) {
+          return
+        }
+
+        setProject(nextProject)
+
+        if (nextProject?.id) {
+          try {
+            const nextScreenshots = await getProjectScreenshots(nextProject.id)
+
+            if (isMounted) {
+              setScreenshots(Array.isArray(nextScreenshots) ? nextScreenshots : [])
+            }
+          } catch {
+            if (isMounted) {
+              setScreenshots([])
+            }
+          }
+        }
+      } catch {
+        if (isMounted) {
+          setProject(null)
+          setScreenshots([])
+          setError('Project details could not be loaded right now.')
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
     }
 
-    return slugify(getProjectSlug(item)) === routeSlug
-  })
+    loadProject()
+
+    return () => {
+      isMounted = false
+    }
+  }, [slug])
+
+  if (isLoading) {
+    return (
+      <PublicLayout>
+        <div className="flex min-h-[64vh] items-center justify-center">
+          <LoadingState label="Loading project details..." className="w-full max-w-2xl" />
+        </div>
+      </PublicLayout>
+    )
+  }
+
+  if (error) {
+    return (
+      <PublicLayout>
+        <ProjectErrorState message={error} />
+      </PublicLayout>
+    )
+  }
 
   if (!project) {
     return (
@@ -126,6 +212,7 @@ export default function ProjectDetail() {
   const techStack = normalizeArray(project.tech_stack)
   const detailEntries = detailBlocks.filter((block) => Boolean(project[block.key]))
   const linkEntries = linkBlocks.filter((block) => Boolean(project[block.key]))
+  const displayableScreenshots = screenshots.filter((screenshot) => screenshot?.url || screenshot?.image_url)
   const hasSnapshotContent = Boolean(project.category || project.year || techStack.length > 0)
   const hasDetailContent = Boolean(
     project.short_description ||
@@ -133,7 +220,8 @@ export default function ProjectDetail() {
       features.length > 0 ||
       techStack.length > 0 ||
       project.what_i_learned ||
-      linkEntries.length > 0,
+      linkEntries.length > 0 ||
+      displayableScreenshots.length > 0,
   )
 
   return (
@@ -262,6 +350,23 @@ export default function ProjectDetail() {
           <section className="border border-line bg-panel/75 p-6 shadow-panel sm:p-8">
             <p className="text-xs uppercase tracking-[0.22em] text-muted">What I Learned</p>
             <p className="mt-4 max-w-4xl text-sm leading-7 text-muted">{project.what_i_learned}</p>
+          </section>
+        ) : null}
+
+        {displayableScreenshots.length > 0 ? (
+          <section className="border border-line bg-panel/75 p-6 shadow-panel sm:p-8">
+            <p className="text-xs uppercase tracking-[0.22em] text-muted">Screenshots</p>
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              {displayableScreenshots.map((screenshot, index) => (
+                <img
+                  key={screenshot.id || screenshot.url || screenshot.image_url || index}
+                  alt={screenshot.alt || `${project.title} screenshot`}
+                  className="aspect-video w-full border border-line bg-ink object-cover"
+                  loading="lazy"
+                  src={screenshot.url || screenshot.image_url}
+                />
+              ))}
+            </div>
           </section>
         ) : null}
 
