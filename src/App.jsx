@@ -1,15 +1,25 @@
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import AdminDashboard from './pages/AdminDashboard'
+import AdminLogin from './pages/AdminLogin'
+import Archive from './pages/Archive'
+import Home from './pages/Home'
+import NotFound from './pages/NotFound'
+import ProjectDetail from './pages/ProjectDetail'
+import ProjectForm from './pages/ProjectForm'
+
 export default function App() {
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#05070b] px-6 text-slate-100">
-      <div className="max-w-xl text-center">
-        <p className="text-xs uppercase tracking-[0.4em] text-slate-500">Portfolio CMS</p>
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-5xl">
-          Futuristic Backend Lab Portfolio CMS
-        </h1>
-        <p className="mt-4 text-sm text-slate-400">
-          React, Vite, and Tailwind CSS foundation is ready.
-        </p>
-      </div>
-    </main>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/projects/:slug" element={<ProjectDetail />} />
+        <Route path="/admin" element={<AdminLogin />} />
+        <Route path="/admin/dashboard" element={<AdminDashboard />} />
+        <Route path="/admin/projects/new" element={<ProjectForm mode="create" />} />
+        <Route path="/admin/projects/:id/edit" element={<ProjectForm mode="edit" />} />
+        <Route path="/admin/archive" element={<Archive />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </BrowserRouter>
   )
 }
