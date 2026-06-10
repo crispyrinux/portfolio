@@ -126,9 +126,7 @@ export default function ProjectDetail() {
   const techStack = normalizeArray(project.tech_stack)
   const detailEntries = detailBlocks.filter((block) => Boolean(project[block.key]))
   const linkEntries = linkBlocks.filter((block) => Boolean(project[block.key]))
-  const hasSupportContent = Boolean(
-    project.category || project.year || techStack.length > 0 || linkEntries.length > 0,
-  )
+  const hasSnapshotContent = Boolean(project.category || project.year || techStack.length > 0)
   const hasDetailContent = Boolean(
     project.short_description ||
       detailEntries.length > 0 ||
@@ -172,7 +170,7 @@ export default function ProjectDetail() {
           </div>
 
           <aside className="space-y-4">
-            {hasSupportContent ? (
+            {hasSnapshotContent ? (
               <div className="border border-line bg-panel/75 p-6 shadow-panel">
                 <p className="text-xs uppercase tracking-[0.22em] text-muted">Project Snapshot</p>
                 <div className="mt-4 space-y-3 text-sm text-muted">
@@ -218,7 +216,7 @@ export default function ProjectDetail() {
               </div>
             ) : null}
 
-            {!hasSupportContent && !linkEntries.length ? (
+            {!hasSnapshotContent && !linkEntries.length ? (
               <div className="border border-line bg-panel/75 p-6 shadow-panel">
                 <p className="text-sm leading-7 text-muted">
                   This project currently has only a title. More details can be added later.
