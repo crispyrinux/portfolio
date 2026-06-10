@@ -1,18 +1,45 @@
+import { useEffect, useState } from 'react'
 import ProjectCard from '../projects/ProjectCard'
 import EmptyState from '../common/EmptyState'
+import LoadingState from '../common/LoadingState'
 import SectionHeader from '../ui/SectionHeader'
-import { fallbackProjects } from '../../data/fallbackProjects'
-
-const featuredProjects = [...fallbackProjects]
-  .filter((project) => project.is_featured === true && project.is_archived !== true)
-  .sort((a, b) => {
-    const firstOrder = a.display_order ?? Number.MAX_SAFE_INTEGER
-    const secondOrder = b.display_order ?? Number.MAX_SAFE_INTEGER
-
-    return firstOrder - secondOrder
-  })
+import { getPublicProjects } from '../../services/projectService'
 
 export default function FeaturedProjects() {
+  const [featuredProjects, setFeaturedProjects] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    let isMounted = true
+
+    async function loadFeaturedProjects() {
+      try {
+        const publicProjects = await getPublicProjects()
+        const nextFeaturedProjects = Array.isArray(publicProjects)
+          ? publicProjects.filter((project) => project.is_featured === true && project.is_archived !== true)
+          : []
+
+        if (isMounted) {
+          setFeaturedProjects(nextFeaturedProjects)
+        }
+      } catch {
+        if (isMounted) {
+          setFeaturedProjects([])
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    loadFeaturedProjects()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
   return (
     <section id="featured-projects" className="scroll-mt-24 py-14 sm:py-16" aria-labelledby="featured-projects-title">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
@@ -31,7 +58,9 @@ export default function FeaturedProjects() {
         </a>
       </div>
 
-      {featuredProjects.length > 0 ? (
+      {isLoading ? (
+        <LoadingState label="Loading featured projects..." className="mt-8" />
+      ) : featuredProjects.length > 0 ? (
         <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
           {featuredProjects.map((project) => (
             <ProjectCard key={project.id || project.slug || project.title} project={project} />
