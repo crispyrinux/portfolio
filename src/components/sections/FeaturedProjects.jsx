@@ -20,10 +20,10 @@ const projects = [
 
 export default function FeaturedProjects() {
   return (
-    <section id="projects" className="scroll-mt-24 py-14 sm:py-16" aria-labelledby="projects-title">
+    <section id="featured-projects" className="scroll-mt-24 py-14 sm:py-16" aria-labelledby="featured-projects-title">
       <SectionHeader
         eyebrow="Featured Projects"
-        titleId="projects-title"
+        titleId="featured-projects-title"
         title="Static project preview area"
         description="These cards are visual placeholders only. Dynamic project data and project card logic will be added later."
       />
