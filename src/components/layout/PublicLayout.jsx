@@ -1,13 +1,14 @@
 import Footer from './Footer'
 import Navbar from './Navbar'
+import Container from '../ui/Container'
 
 export default function PublicLayout({ children }) {
   return (
-    <div className="min-h-screen bg-[#05070b] text-slate-100">
-      <div className="mx-auto flex min-h-screen w-full max-w-6xl flex-col">
+    <div className="min-h-screen bg-ink text-foreground">
+      <div className="flex min-h-screen flex-col">
         <Navbar />
-        <main id="top" className="flex-1 px-6 py-8 sm:px-8 lg:px-10">
-          {children}
+        <main id="top" className="flex-1">
+          <Container className="py-8 sm:py-10 lg:py-12">{children}</Container>
         </main>
         <Footer />
       </div>
