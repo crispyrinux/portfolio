@@ -1,14 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import AdminLayout from '../components/admin/AdminLayout'
 import EmptyState from '../components/common/EmptyState'
 import ErrorState from '../components/common/ErrorState'
 import LoadingState from '../components/common/LoadingState'
-import { createProject, getAdminProjectById, updateProject } from '../services/projectService'
-import { deleteStorageFile, uploadProjectThumbnail } from '../services/storageService'
+import {
+  addProjectScreenshot,
+  createProject,
+  deleteProjectScreenshot,
+  getAdminProjectById,
+  getAdminProjectScreenshots,
+  updateProject,
+} from '../services/projectService'
+import { deleteStorageFile, uploadProjectScreenshot, uploadProjectThumbnail } from '../services/storageService'
 
 const THUMBNAIL_BUCKET = 'project-thumbnails'
-const MAX_THUMBNAIL_SIZE_BYTES = 5 * 1024 * 1024
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024
 
 const initialFormState = {
   title: '',
@@ -95,20 +102,32 @@ function getStringValue(value) {
   return value === null || value === undefined ? '' : String(value)
 }
 
-function validateThumbnailFile(file) {
+function validateImageFile(file, label) {
   if (!file) {
     return null
   }
 
   if (!String(file.type || '').startsWith('image/')) {
-    return 'Thumbnail must be an image file.'
+    return `${label} must be an image file.`
   }
 
-  if (typeof file.size === 'number' && file.size > MAX_THUMBNAIL_SIZE_BYTES) {
-    return 'Thumbnail must be 5 MB or smaller.'
+  if (typeof file.size === 'number' && file.size > MAX_IMAGE_SIZE_BYTES) {
+    return `${label} must be 5 MB or smaller.`
   }
 
   return null
+}
+
+function validateThumbnailFile(file) {
+  return validateImageFile(file, 'Thumbnail')
+}
+
+function validateScreenshotFile(file) {
+  return validateImageFile(file, 'Screenshot')
+}
+
+function getScreenshotImageUrl(screenshot) {
+  return screenshot?.image_url || screenshot?.url || ''
 }
 
 function mapProjectToFormState(project) {
@@ -138,17 +157,25 @@ export default function ProjectForm() {
   const navigate = useNavigate()
   const { id } = useParams()
   const isEditMode = Boolean(id)
+  const screenshotInputRef = useRef(null)
   const [formData, setFormData] = useState(initialFormState)
   const [isLoadingProject, setIsLoadingProject] = useState(isEditMode)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState(null)
   const [validationError, setValidationError] = useState(null)
   const [thumbnailError, setThumbnailError] = useState(null)
+  const [screenshotError, setScreenshotError] = useState(null)
+  const [screenshotSuccessMessage, setScreenshotSuccessMessage] = useState(null)
   const [successMessage, setSuccessMessage] = useState(null)
   const [loadError, setLoadError] = useState(null)
   const [notFound, setNotFound] = useState(false)
   const [thumbnailFile, setThumbnailFile] = useState(null)
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState('')
+  const [screenshotFiles, setScreenshotFiles] = useState([])
+  const [screenshots, setScreenshots] = useState([])
+  const [isLoadingScreenshots, setIsLoadingScreenshots] = useState(false)
+  const [isUploadingScreenshots, setIsUploadingScreenshots] = useState(false)
+  const [deletingScreenshotId, setDeletingScreenshotId] = useState(null)
 
   useEffect(() => {
     if (!isEditMode) {
@@ -159,6 +186,11 @@ export default function ProjectForm() {
       setThumbnailFile(null)
       setThumbnailPreviewUrl('')
       setThumbnailError(null)
+      setScreenshotFiles([])
+      setScreenshots([])
+      setScreenshotError(null)
+      setScreenshotSuccessMessage(null)
+      setIsLoadingScreenshots(false)
       return
     }
 
@@ -195,6 +227,39 @@ export default function ProjectForm() {
     }
 
     loadProject()
+
+    return () => {
+      isMounted = false
+    }
+  }, [id, isEditMode])
+
+  useEffect(() => {
+    if (!isEditMode || !id) {
+      setScreenshots([])
+      setScreenshotFiles([])
+      setScreenshotError(null)
+      setScreenshotSuccessMessage(null)
+      setIsLoadingScreenshots(false)
+      return
+    }
+
+    let isMounted = true
+
+    async function loadScreenshots() {
+      setIsLoadingScreenshots(true)
+      setScreenshotError(null)
+
+      const nextScreenshots = await getAdminProjectScreenshots(id)
+
+      if (!isMounted) {
+        return
+      }
+
+      setScreenshots(nextScreenshots)
+      setIsLoadingScreenshots(false)
+    }
+
+    loadScreenshots()
 
     return () => {
       isMounted = false
@@ -249,6 +314,128 @@ export default function ProjectForm() {
 
     setThumbnailError(null)
     setThumbnailFile(file)
+  }
+
+  function handleScreenshotFilesChange(event) {
+    const files = Array.from(event.target.files ?? [])
+
+    setScreenshotError(null)
+    setScreenshotSuccessMessage(null)
+    setScreenshotFiles(files)
+  }
+
+  async function refreshScreenshots() {
+    if (!isEditMode || !id) {
+      setScreenshots([])
+      return []
+    }
+
+    const nextScreenshots = await getAdminProjectScreenshots(id)
+    setScreenshots(nextScreenshots)
+    return nextScreenshots
+  }
+
+  async function handleUploadScreenshots() {
+    setScreenshotError(null)
+    setScreenshotSuccessMessage(null)
+
+    if (!isEditMode || !id) {
+      setScreenshotError('Save the project first, then edit it to add screenshots.')
+      return
+    }
+
+    if (screenshotFiles.length === 0) {
+      setScreenshotError('Select at least one screenshot image to upload.')
+      return
+    }
+
+    setIsUploadingScreenshots(true)
+
+    let uploadedCount = 0
+    const failures = []
+
+    for (const file of screenshotFiles) {
+      const fileError = validateScreenshotFile(file)
+
+      if (fileError) {
+        failures.push(`${file.name || 'Screenshot'}: ${fileError}`)
+        continue
+      }
+
+      const uploadResult = await uploadProjectScreenshot(file, id)
+
+      if (uploadResult.error) {
+        failures.push(`${file.name || 'Screenshot'}: ${uploadResult.error}`)
+        continue
+      }
+
+      const insertResult = await addProjectScreenshot({
+        project_id: id,
+        image_url: uploadResult.publicUrl,
+        caption: null,
+        display_order: null,
+      })
+
+      if (insertResult.error) {
+        failures.push(`${file.name || 'Screenshot'}: ${insertResult.error}`)
+        continue
+      }
+
+      uploadedCount += 1
+    }
+
+    await refreshScreenshots()
+
+    if (uploadedCount > 0) {
+      setScreenshotFiles([])
+
+      if (screenshotInputRef.current) {
+        screenshotInputRef.current.value = ''
+      }
+
+      setScreenshotSuccessMessage(
+        uploadedCount === 1
+          ? '1 screenshot uploaded.'
+          : `${uploadedCount} screenshots uploaded.`,
+      )
+    }
+
+    if (failures.length > 0) {
+      setScreenshotError(failures.join(' '))
+    }
+
+    setIsUploadingScreenshots(false)
+  }
+
+  async function handleDeleteScreenshot(screenshot) {
+    if (!screenshot?.id) {
+      setScreenshotError('Screenshot id is missing.')
+      return
+    }
+
+    const shouldDelete = window.confirm(
+      'Delete this screenshot record? This removes it from the project, but the Storage file will not be deleted yet.',
+    )
+
+    if (!shouldDelete) {
+      return
+    }
+
+    setDeletingScreenshotId(screenshot.id)
+    setScreenshotError(null)
+    setScreenshotSuccessMessage(null)
+
+    const result = await deleteProjectScreenshot(screenshot.id)
+
+    if (result.error) {
+      setScreenshotError(result.error)
+      setDeletingScreenshotId(null)
+      return
+    }
+
+    await refreshScreenshots()
+    setScreenshotSuccessMessage('Screenshot record deleted.')
+    setDeletingScreenshotId(null)
   }
 
   async function handleSubmit(event) {
@@ -696,6 +883,124 @@ export default function ProjectForm() {
               value={formData.display_order}
             />
           </div>
+        </FieldGroup>
+
+        <FieldGroup
+          title="Screenshots"
+          description="Optional project detail images. Screenshots can be added after a project exists in Supabase."
+        >
+          {!isEditMode ? (
+            <div className="border border-slate-800 bg-[#05070b] p-5 text-sm leading-6 text-slate-400">
+              Save the project first, then edit it to add screenshots.
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-4 border border-slate-800 bg-[#05070b] p-5">
+                <label className="grid gap-2" htmlFor="screenshot_files">
+                  <span className="text-sm font-medium text-slate-300">Upload Screenshots</span>
+                  <input
+                    accept="image/*"
+                    className="border border-slate-800 bg-slate-950 px-4 py-3 text-sm text-slate-300 file:mr-4 file:border-0 file:bg-slate-800 file:px-4 file:py-2 file:text-xs file:font-medium file:uppercase file:tracking-[0.18em] file:text-slate-100 hover:file:bg-slate-700"
+                    id="screenshot_files"
+                    multiple
+                    name="screenshot_files"
+                    onChange={handleScreenshotFilesChange}
+                    ref={screenshotInputRef}
+                    type="file"
+                  />
+                  <span className="text-xs leading-5 text-slate-500">
+                    Optional. Select one or more image files up to 5 MB each.
+                  </span>
+                </label>
+
+                {screenshotFiles.length > 0 ? (
+                  <div className="border border-slate-800 bg-slate-950/70 p-4">
+                    <p className="text-xs uppercase tracking-[0.22em] text-slate-500">
+                      {screenshotFiles.length === 1 ? '1 file selected' : `${screenshotFiles.length} files selected`}
+                    </p>
+                    <ul className="mt-3 grid gap-2 text-sm text-slate-300">
+                      {screenshotFiles.map((file) => (
+                        <li key={`${file.name}-${file.size}-${file.lastModified}`} className="truncate">
+                          {file.name}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {screenshotSuccessMessage ? (
+                  <div className="border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm text-emerald-100">
+                    {screenshotSuccessMessage}
+                  </div>
+                ) : null}
+
+                {screenshotError ? (
+                  <div className="border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-100" role="alert">
+                    {screenshotError}
+                  </div>
+                ) : null}
+
+                <div>
+                  <button
+                    className="inline-flex justify-center border border-cyan-400/50 bg-cyan-400/10 px-5 py-3 text-sm font-semibold text-cyan-100 transition-colors hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={isUploadingScreenshots || screenshotFiles.length === 0}
+                    onClick={handleUploadScreenshots}
+                    type="button"
+                  >
+                    {isUploadingScreenshots ? 'Uploading...' : 'Upload Screenshots'}
+                  </button>
+                </div>
+              </div>
+
+              {isLoadingScreenshots ? (
+                <LoadingState label="Loading screenshots..." />
+              ) : screenshots.length > 0 ? (
+                <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                  {screenshots.map((screenshot) => {
+                    const imageUrl = getScreenshotImageUrl(screenshot)
+
+                    return (
+                      <article key={screenshot.id} className="overflow-hidden border border-slate-800 bg-[#05070b]">
+                        {imageUrl ? (
+                          <img
+                            alt={screenshot.caption || 'Project screenshot'}
+                            className="aspect-video w-full object-cover"
+                            loading="lazy"
+                            onError={(event) => {
+                              event.currentTarget.hidden = true
+                            }}
+                            src={imageUrl}
+                          />
+                        ) : (
+                          <div className="flex aspect-video items-center justify-center px-4 text-center text-sm text-slate-500">
+                            Screenshot URL unavailable
+                          </div>
+                        )}
+
+                        <div className="grid gap-4 p-4">
+                          {screenshot.caption ? (
+                            <p className="text-sm leading-6 text-slate-300">{screenshot.caption}</p>
+                          ) : null}
+                          <button
+                            className="inline-flex justify-center border border-rose-500/40 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-100 transition-colors hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                            disabled={deletingScreenshotId === screenshot.id}
+                            onClick={() => handleDeleteScreenshot(screenshot)}
+                            type="button"
+                          >
+                            {deletingScreenshotId === screenshot.id ? 'Deleting...' : 'Delete'}
+                          </button>
+                        </div>
+                      </article>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="border border-slate-800 bg-[#05070b] p-5 text-sm leading-6 text-slate-400">
+                  No screenshots have been added to this project yet.
+                </div>
+              )}
+            </>
+          )}
         </FieldGroup>
 
         <div className="flex flex-col gap-3 border border-slate-800 bg-slate-950/70 p-5 sm:flex-row sm:items-center sm:justify-end">
