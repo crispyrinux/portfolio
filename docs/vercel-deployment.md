@@ -34,13 +34,11 @@ dist
 Add these environment variables in Vercel Project Settings:
 
 - `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
 
 Use the same values as your local environment.
 
 Do not use the Supabase service role key.
-
-If your local app still uses a different Supabase env variable name, keep the value aligned with the app code before final production testing.
 
 ## 4. Deploy
 

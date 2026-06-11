@@ -50,7 +50,7 @@ A futuristic backend-focused portfolio with a hidden admin CMS powered by React,
 ## Environment Variables
 
 - `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
 
 Use the public Supabase key value for your local setup. Keep the value aligned with the existing app configuration and setup docs.
 
