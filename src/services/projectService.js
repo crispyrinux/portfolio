@@ -244,6 +244,40 @@ export async function getAdminProjects() {
   }
 }
 
+export async function getArchivedProjects() {
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      projects: [],
+      error: getAdminNotConfiguredError('Archived project reading'),
+    }
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .eq('is_archived', true)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      return {
+        projects: [],
+        error: getErrorMessage(error, 'Archived projects could not be loaded.'),
+      }
+    }
+
+    return {
+      projects: Array.isArray(data) ? data : [],
+      error: null,
+    }
+  } catch (error) {
+    return {
+      projects: [],
+      error: getErrorMessage(error, 'Archived projects could not be loaded.'),
+    }
+  }
+}
+
 export async function getAdminProjectById(id) {
   if (!isSupabaseConfigured || !supabase) {
     return {
