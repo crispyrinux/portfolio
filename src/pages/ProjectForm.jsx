@@ -1,10 +1,16 @@
-export default function ProjectForm() {
+import AdminLayout from '../components/admin/AdminLayout'
+
+export default function ProjectForm({ mode }) {
+  const title = mode === 'edit' ? 'Edit Project' : 'New Project'
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[#05070b] px-6 text-slate-100">
-      <section className="w-full max-w-xl border border-slate-800 bg-slate-950/70 px-8 py-12 text-center">
-        <p className="text-xs uppercase tracking-[0.4em] text-slate-500">Admin</p>
-        <h1 className="mt-4 text-3xl font-semibold tracking-tight text-white">Project Form Placeholder</h1>
+    <AdminLayout
+      title={title}
+      description="A protected placeholder for the future project form."
+    >
+      <section className="border border-slate-800 bg-slate-950/70 p-8">
+        <p className="text-sm leading-7 text-slate-400">Project Form Placeholder</p>
       </section>
-    </main>
+    </AdminLayout>
   )
 }
