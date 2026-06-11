@@ -1,146 +1,142 @@
-import { useEffect, useRef } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
+import './AnimatedHero.css'
 
 gsap.registerPlugin(ScrollTrigger)
 
-const roles = ['Backend Developer', 'Software Engineer', 'Computer Science Student']
-
 const chapters = [
   {
-    title: 'PROJECTS',
-    description: 'Selected builds, academic work, cloud experiments, and case studies.',
+    title: 'PORTFOLIO',
+    line1: 'A digital space for backend systems,',
+    line2: 'software engineering, and technical exploration.',
   },
   {
-    title: 'LAB',
-    description: 'Where ideas become systems, and experiments become documented products.',
+    title: 'EXPERIENCE',
+    line1: 'Where ideas become systems,',
+    line2: 'and experiments become documented products.',
+  },
+  {
+    title: 'PROJECTS',
+    line1: 'Selected builds, academic work,',
+    line2: 'cloud experiments, and case studies.',
   },
 ]
 
-function disposeMaterial(material) {
-  if (Array.isArray(material)) {
-    material.forEach((item) => item.dispose())
-    return
-  }
-
-  material?.dispose()
-}
-
 export default function AnimatedHero() {
-  const sectionRef = useRef(null)
+  const containerRef = useRef(null)
+  const stageRef = useRef(null)
   const canvasRef = useRef(null)
-  const sideRef = useRef(null)
-  const rolesRef = useRef(null)
-  const titleRef = useRef(null)
-  const subtitleRef = useRef(null)
-  const chaptersRef = useRef(null)
-  const ctaRef = useRef(null)
+  const chapterRefs = useRef([])
+  const scrollProgressRef = useRef(null)
   const progressFillRef = useRef(null)
+  const menuRef = useRef(null)
 
-  const cameraTargetRef = useRef({ x: 0, y: 24, z: 145 })
-  const smoothCameraRef = useRef({ x: 0, y: 24, z: 145 })
+  const smoothCameraPos = useRef({ x: 0, y: 30, z: 100 })
+  const targetScrollProgress = useRef(0)
+  const smoothScrollProgress = useRef(0)
+  const activeSectionRef = useRef(0)
+
+  const [currentSection, setCurrentSection] = useState(0)
+  const [isReady, setIsReady] = useState(false)
+  const totalSections = chapters.length
 
   const threeRefs = useRef({
     scene: null,
     camera: null,
     renderer: null,
     composer: null,
-    bloomPass: null,
-    objects: [],
     stars: [],
-    mountains: [],
     nebula: null,
+    mountains: [],
     atmosphere: null,
-    grid: null,
+    locations: [],
     animationId: null,
-    scrollTrigger: null,
   })
 
   useEffect(() => {
-    const section = sectionRef.current
-    const canvas = canvasRef.current
+    const initThree = () => {
+      const { current: refs } = threeRefs
+      const stage = stageRef.current
+      const width = stage?.clientWidth || window.innerWidth
+      const height = stage?.clientHeight || window.innerHeight
 
-    if (!section || !canvas) {
-      return undefined
+      refs.scene = new THREE.Scene()
+      refs.scene.fog = new THREE.FogExp2(0x000000, 0.00025)
+
+      refs.camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 2000)
+      refs.camera.position.z = 100
+      refs.camera.position.y = 20
+      refs.targetCameraX = 0
+      refs.targetCameraY = 30
+      refs.targetCameraZ = 300
+
+      refs.renderer = new THREE.WebGLRenderer({
+        canvas: canvasRef.current,
+        antialias: true,
+        alpha: true,
+        powerPreference: 'high-performance',
+      })
+      refs.renderer.setSize(width, height)
+      refs.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.25))
+      refs.renderer.setClearColor(0x000000, 1)
+      refs.renderer.toneMapping = THREE.ACESFilmicToneMapping
+      refs.renderer.toneMappingExposure = 0.5
+
+      refs.composer = new EffectComposer(refs.renderer)
+      const renderPass = new RenderPass(refs.scene, refs.camera)
+      refs.composer.addPass(renderPass)
+
+      const bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height), 0.8, 0.4, 0.85)
+      refs.composer.addPass(bloomPass)
+
+      createStarField()
+      createNebula()
+      createMountains()
+      createAtmosphere()
+      getLocation()
+      animate()
+      setIsReady(true)
     }
-
-    const refs = threeRefs.current
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const clock = new THREE.Clock()
-
-    const getSize = () => {
-      const rect = section.getBoundingClientRect()
-      return {
-        width: Math.max(rect.width, 1),
-        height: Math.max(rect.height, 1),
-      }
-    }
-
-    const { width, height } = getSize()
-
-    refs.scene = new THREE.Scene()
-    refs.scene.fog = new THREE.FogExp2(0x030711, 0.0012)
-
-    refs.camera = new THREE.PerspectiveCamera(64, width / height, 0.1, 1600)
-    refs.camera.position.set(0, 24, 145)
-    refs.camera.lookAt(0, -8, -240)
-
-    refs.renderer = new THREE.WebGLRenderer({
-      canvas,
-      antialias: true,
-      alpha: true,
-      powerPreference: 'high-performance',
-    })
-    refs.renderer.setSize(width, height)
-    refs.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
-    refs.renderer.toneMapping = THREE.ACESFilmicToneMapping
-    refs.renderer.toneMappingExposure = 0.65
-
-    refs.composer = new EffectComposer(refs.renderer)
-    refs.composer.setSize(width, height)
-    refs.composer.addPass(new RenderPass(refs.scene, refs.camera))
-
-    refs.bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height), 0.58, 0.34, 0.82)
-    refs.composer.addPass(refs.bloomPass)
 
     const createStarField = () => {
-      const isMobile = width < 768
-      const starCount = isMobile ? 850 : 1600
+      const { current: refs } = threeRefs
+      const starCount = 5000
 
-      for (let layer = 0; layer < 2; layer += 1) {
+      for (let i = 0; i < 3; i += 1) {
         const geometry = new THREE.BufferGeometry()
         const positions = new Float32Array(starCount * 3)
         const colors = new Float32Array(starCount * 3)
         const sizes = new Float32Array(starCount)
 
-        for (let i = 0; i < starCount; i += 1) {
-          const radius = 170 + Math.random() * (520 + layer * 260)
+        for (let j = 0; j < starCount; j += 1) {
+          const radius = 200 + Math.random() * 800
           const theta = Math.random() * Math.PI * 2
           const phi = Math.acos(Math.random() * 2 - 1)
 
-          positions[i * 3] = radius * Math.sin(phi) * Math.cos(theta)
-          positions[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta)
-          positions[i * 3 + 2] = radius * Math.cos(phi) - 190
+          positions[j * 3] = radius * Math.sin(phi) * Math.cos(theta)
+          positions[j * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta)
+          positions[j * 3 + 2] = radius * Math.cos(phi)
 
           const color = new THREE.Color()
           const colorChoice = Math.random()
 
-          if (colorChoice < 0.72) {
-            color.setHSL(0.62, 0.18, 0.82 + Math.random() * 0.14)
+          if (colorChoice < 0.7) {
+            color.setHSL(0, 0, 0.8 + Math.random() * 0.2)
           } else if (colorChoice < 0.9) {
-            color.setHSL(0.58, 0.58, 0.75)
+            color.setHSL(0.08, 0.5, 0.8)
           } else {
-            color.setHSL(0.76, 0.42, 0.78)
+            color.setHSL(0.6, 0.5, 0.8)
           }
 
-          colors[i * 3] = color.r
-          colors[i * 3 + 1] = color.g
-          colors[i * 3 + 2] = color.b
-          sizes[i] = Math.random() * 1.8 + 0.4
+          colors[j * 3] = color.r
+          colors[j * 3 + 1] = color.g
+          colors[j * 3 + 2] = color.b
+          sizes[j] = Math.random() * 2 + 0.5
         }
 
         geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
@@ -150,7 +146,7 @@ export default function AnimatedHero() {
         const material = new THREE.ShaderMaterial({
           uniforms: {
             time: { value: 0 },
-            depth: { value: layer },
+            depth: { value: i },
           },
           vertexShader: `
             attribute float size;
@@ -162,12 +158,13 @@ export default function AnimatedHero() {
             void main() {
               vColor = color;
               vec3 pos = position;
-              float angle = time * 0.025 * (1.0 - depth * 0.25);
-              mat2 rotation = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
-              pos.xy = rotation * pos.xy;
+
+              float angle = time * 0.05 * (1.0 - depth * 0.3);
+              mat2 rot = mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
+              pos.xy = rot * pos.xy;
 
               vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
-              gl_PointSize = size * (250.0 / -mvPosition.z);
+              gl_PointSize = size * (300.0 / -mvPosition.z);
               gl_Position = projectionMatrix * mvPosition;
             }
           `,
@@ -177,6 +174,7 @@ export default function AnimatedHero() {
             void main() {
               float dist = length(gl_PointCoord - vec2(0.5));
               if (dist > 0.5) discard;
+
               float opacity = 1.0 - smoothstep(0.0, 0.5, dist);
               gl_FragColor = vec4(vColor, opacity);
             }
@@ -189,19 +187,19 @@ export default function AnimatedHero() {
         const stars = new THREE.Points(geometry, material)
         refs.scene.add(stars)
         refs.stars.push(stars)
-        refs.objects.push(stars)
       }
     }
 
     const createNebula = () => {
-      const segmentCount = width < 768 ? 28 : 48
-      const geometry = new THREE.PlaneGeometry(900, 420, segmentCount, Math.max(16, Math.floor(segmentCount / 2)))
+      const { current: refs } = threeRefs
+
+      const geometry = new THREE.PlaneGeometry(8000, 4000, 100, 100)
       const material = new THREE.ShaderMaterial({
         uniforms: {
           time: { value: 0 },
-          color1: { value: new THREE.Color(0x1d4ed8) },
-          color2: { value: new THREE.Color(0x7c3aed) },
-          opacity: { value: 0.28 },
+          color1: { value: new THREE.Color(0x0033ff) },
+          color2: { value: new THREE.Color(0xff0066) },
+          opacity: { value: 0.3 },
         },
         vertexShader: `
           varying vec2 vUv;
@@ -211,9 +209,11 @@ export default function AnimatedHero() {
           void main() {
             vUv = uv;
             vec3 pos = position;
-            float elevation = sin(pos.x * 0.012 + time) * cos(pos.y * 0.015 + time) * 12.0;
+
+            float elevation = sin(pos.x * 0.01 + time) * cos(pos.y * 0.01 + time) * 20.0;
             pos.z += elevation;
             vElevation = elevation;
+
             gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
           }
         `,
@@ -226,10 +226,12 @@ export default function AnimatedHero() {
           varying float vElevation;
 
           void main() {
-            float mixFactor = sin(vUv.x * 9.0 + time) * cos(vUv.y * 7.0 + time);
+            float mixFactor = sin(vUv.x * 10.0 + time) * cos(vUv.y * 10.0 + time);
             vec3 color = mix(color1, color2, mixFactor * 0.5 + 0.5);
-            float alpha = opacity * (1.0 - length(vUv - 0.5) * 1.55);
-            alpha *= 1.0 + vElevation * 0.015;
+
+            float alpha = opacity * (1.0 - length(vUv - 0.5) * 2.0);
+            alpha *= 1.0 + vElevation * 0.01;
+
             gl_FragColor = vec4(color, alpha);
           }
         `,
@@ -239,40 +241,40 @@ export default function AnimatedHero() {
         depthWrite: false,
       })
 
-      refs.nebula = new THREE.Mesh(geometry, material)
-      refs.nebula.position.set(0, 65, -410)
-      refs.scene.add(refs.nebula)
-      refs.objects.push(refs.nebula)
+      const nebula = new THREE.Mesh(geometry, material)
+      nebula.position.z = -1050
+      nebula.rotation.x = 0
+      refs.scene.add(nebula)
+      refs.nebula = nebula
     }
 
-    const createHorizon = () => {
-      refs.grid = new THREE.GridHelper(540, 44, 0x7c8cff, 0x1e293b)
-      refs.grid.position.set(0, -46, -100)
-      refs.grid.material.transparent = true
-      refs.grid.material.opacity = 0.18
-      refs.scene.add(refs.grid)
-      refs.objects.push(refs.grid)
+    const createMountains = () => {
+      const { current: refs } = threeRefs
 
       const layers = [
-        { z: -82, y: -38, height: 38, color: 0x111827, opacity: 0.96 },
-        { z: -120, y: -34, height: 50, color: 0x172554, opacity: 0.66 },
-        { z: -164, y: -30, height: 68, color: 0x312e81, opacity: 0.34 },
+        { distance: -50, height: 60, color: 0x1a1a2e, opacity: 1 },
+        { distance: -100, height: 80, color: 0x16213e, opacity: 0.8 },
+        { distance: -150, height: 100, color: 0x0f3460, opacity: 0.6 },
+        { distance: -200, height: 120, color: 0x0a4668, opacity: 0.4 },
       ]
 
-      layers.forEach((layer, layerIndex) => {
+      layers.forEach((layer, index) => {
         const points = []
-        const segments = 42
+        const segments = 96
 
         for (let i = 0; i <= segments; i += 1) {
-          const x = (i / segments - 0.5) * 700
+          const x = (i / segments - 0.5) * 1000
           const y =
-            Math.sin(i * 0.52 + layerIndex) * layer.height * 0.25 +
-            Math.sin(i * 0.17 + layerIndex * 1.8) * layer.height * 0.5
+            Math.sin(i * 0.1) * layer.height +
+            Math.sin(i * 0.05) * layer.height * 0.5 +
+            Math.random() * layer.height * 0.2 -
+            100
+
           points.push(new THREE.Vector2(x, y))
         }
 
-        points.push(new THREE.Vector2(390, -120))
-        points.push(new THREE.Vector2(-390, -120))
+        points.push(new THREE.Vector2(5000, -300))
+        points.push(new THREE.Vector2(-5000, -300))
 
         const shape = new THREE.Shape(points)
         const geometry = new THREE.ShapeGeometry(shape)
@@ -284,74 +286,130 @@ export default function AnimatedHero() {
         })
 
         const mountain = new THREE.Mesh(geometry, material)
-        mountain.position.set(0, layer.y, layer.z)
-        mountain.userData = {
-          baseX: 0,
-          drift: 0.18 + layerIndex * 0.12,
-        }
-
+        mountain.position.z = layer.distance
+        mountain.position.y = layer.distance
+        mountain.userData = { baseZ: layer.distance, index }
         refs.scene.add(mountain)
         refs.mountains.push(mountain)
-        refs.objects.push(mountain)
       })
     }
 
     const createAtmosphere = () => {
-      const geometry = new THREE.SphereGeometry(360, 32, 24)
+      const { current: refs } = threeRefs
+
+      const geometry = new THREE.SphereGeometry(600, 32, 32)
       const material = new THREE.ShaderMaterial({
         uniforms: {
           time: { value: 0 },
         },
         vertexShader: `
           varying vec3 vNormal;
+          varying vec3 vPosition;
 
           void main() {
             vNormal = normalize(normalMatrix * normal);
+            vPosition = position;
             gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
           }
         `,
         fragmentShader: `
           varying vec3 vNormal;
+          varying vec3 vPosition;
           uniform float time;
 
           void main() {
-            float intensity = pow(0.68 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
-            vec3 atmosphere = vec3(0.35, 0.55, 1.0) * intensity;
-            float pulse = sin(time * 1.2) * 0.06 + 0.94;
+            float intensity = pow(0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
+            vec3 atmosphere = vec3(0.3, 0.6, 1.0) * intensity;
+
+            float pulse = sin(time * 2.0) * 0.1 + 0.9;
             atmosphere *= pulse;
-            gl_FragColor = vec4(atmosphere, intensity * 0.2);
+
+            gl_FragColor = vec4(atmosphere, intensity * 0.25);
           }
         `,
         side: THREE.BackSide,
         blending: THREE.AdditiveBlending,
         transparent: true,
-        depthWrite: false,
       })
 
-      refs.atmosphere = new THREE.Mesh(geometry, material)
-      refs.atmosphere.position.set(0, -22, -250)
-      refs.scene.add(refs.atmosphere)
-      refs.objects.push(refs.atmosphere)
+      const atmosphere = new THREE.Mesh(geometry, material)
+      refs.scene.add(atmosphere)
+      refs.atmosphere = atmosphere
+    }
+
+    const applyScrollProgress = (progress) => {
+      const container = containerRef.current
+      const { current: refs } = threeRefs
+
+      if (!container || !refs.nebula || refs.mountains.length === 0) {
+        return
+      }
+
+      const scrollableDistance = Math.max(container.offsetHeight - window.innerHeight, 1)
+      const localScrollY = progress * scrollableDistance
+      const chapterProgress = progress * (totalSections - 1)
+      const nextSection = Math.min(totalSections - 1, Math.max(0, Math.round(chapterProgress)))
+
+      if (activeSectionRef.current !== nextSection) {
+        activeSectionRef.current = nextSection
+        setCurrentSection(nextSection)
+      }
+
+      chapterRefs.current.forEach((section, index) => {
+        if (!section) return
+
+        const offset = index - chapterProgress
+        const distance = offset * 100
+        const distanceAbs = Math.abs(offset)
+        const opacity = Math.max(0, 1 - distanceAbs * 1.35)
+        const scale = 1 - Math.min(distanceAbs * 0.075, 0.12)
+
+        section.style.transform = `translate3d(0, ${distance}vh, 0) scale(${scale})`
+        section.style.opacity = opacity
+        section.style.pointerEvents = distanceAbs < 0.42 ? 'auto' : 'none'
+      })
+
+      const cameraPositions = [
+        { x: 0, y: 30, z: 300 },
+        { x: 0, y: 40, z: -50 },
+        { x: 0, y: 50, z: -700 },
+      ]
+      const totalProgress = progress * (cameraPositions.length - 1)
+      const cameraIndex = Math.min(cameraPositions.length - 2, Math.floor(totalProgress))
+      const sectionProgress = totalProgress - cameraIndex
+      const easedSectionProgress = sectionProgress * sectionProgress * (3 - 2 * sectionProgress)
+      const currentPos = cameraPositions[cameraIndex]
+      const nextPos = cameraPositions[cameraIndex + 1]
+
+      refs.targetCameraX = currentPos.x + (nextPos.x - currentPos.x) * easedSectionProgress
+      refs.targetCameraY = currentPos.y + (nextPos.y - currentPos.y) * easedSectionProgress
+      refs.targetCameraZ = currentPos.z + (nextPos.z - currentPos.z) * easedSectionProgress
+
+      refs.mountains.forEach((mountain, index) => {
+        const speed = 1 + index * 0.9
+        const baseZ = refs.locations[index] ?? mountain.userData.baseZ
+        const targetZ = baseZ + localScrollY * speed * 0.5
+
+        mountain.userData.targetZ = targetZ
+        mountain.position.z = targetZ
+      })
+
+      refs.nebula.position.z = refs.mountains[3]?.position.z ?? -1050
+
+      if (progressFillRef.current) {
+        progressFillRef.current.style.transform = `scaleX(${Math.max(progress, 0.04)})`
+      }
     }
 
     const animate = () => {
+      const { current: refs } = threeRefs
       refs.animationId = requestAnimationFrame(animate)
-      const time = clock.getElapsedTime()
-      const smoothing = reducedMotion ? 0.12 : 0.045
 
-      smoothCameraRef.current.x += (cameraTargetRef.current.x - smoothCameraRef.current.x) * smoothing
-      smoothCameraRef.current.y += (cameraTargetRef.current.y - smoothCameraRef.current.y) * smoothing
-      smoothCameraRef.current.z += (cameraTargetRef.current.z - smoothCameraRef.current.z) * smoothing
+      const time = Date.now() * 0.001
+      const scrollSmoothing = 0.072
 
-      const floatX = reducedMotion ? 0 : Math.sin(time * 0.16) * 1.2
-      const floatY = reducedMotion ? 0 : Math.cos(time * 0.12) * 0.9
-
-      refs.camera.position.set(
-        smoothCameraRef.current.x + floatX,
-        smoothCameraRef.current.y + floatY,
-        smoothCameraRef.current.z,
-      )
-      refs.camera.lookAt(0, -8, -235)
+      smoothScrollProgress.current += (targetScrollProgress.current - smoothScrollProgress.current) * scrollSmoothing
+      applyScrollProgress(smoothScrollProgress.current)
 
       refs.stars.forEach((starField) => {
         if (starField.material.uniforms) {
@@ -359,233 +417,239 @@ export default function AnimatedHero() {
         }
       })
 
-      if (refs.nebula?.material.uniforms) {
-        refs.nebula.material.uniforms.time.value = time * 0.42
+      if (refs.nebula && refs.nebula.material.uniforms) {
+        refs.nebula.material.uniforms.time.value = time * 0.5
       }
 
-      if (refs.atmosphere?.material.uniforms) {
-        refs.atmosphere.material.uniforms.time.value = time
+      if (refs.camera && refs.targetCameraX !== undefined) {
+        const smoothingFactor = 0.05
+
+        smoothCameraPos.current.x += (refs.targetCameraX - smoothCameraPos.current.x) * smoothingFactor
+        smoothCameraPos.current.y += (refs.targetCameraY - smoothCameraPos.current.y) * smoothingFactor
+        smoothCameraPos.current.z += (refs.targetCameraZ - smoothCameraPos.current.z) * smoothingFactor
+
+        const floatX = Math.sin(time * 0.1) * 2
+        const floatY = Math.cos(time * 0.15) * 1
+
+        refs.camera.position.x = smoothCameraPos.current.x + floatX
+        refs.camera.position.y = smoothCameraPos.current.y + floatY
+        refs.camera.position.z = smoothCameraPos.current.z
+        refs.camera.lookAt(0, 10, -600)
       }
 
-      refs.mountains.forEach((mountain, index) => {
-        if (!reducedMotion) {
-          mountain.position.x = Math.sin(time * mountain.userData.drift) * (1.5 + index)
-        }
+      refs.mountains.forEach((mountain, i) => {
+        const parallaxFactor = 1 + i * 0.5
+        mountain.position.x = Math.sin(time * 0.1) * 2 * parallaxFactor
+        mountain.position.y = 50 + Math.cos(time * 0.15) * 1 * parallaxFactor
       })
 
-      refs.composer.render()
+      if (refs.composer) {
+        refs.composer.render()
+      }
     }
 
-    createStarField()
-    createNebula()
-    createHorizon()
-    createAtmosphere()
-    animate()
+    initThree()
 
     const handleResize = () => {
-      const nextSize = getSize()
+      const { current: refs } = threeRefs
+      const stage = stageRef.current
+      const width = stage?.clientWidth || window.innerWidth
+      const height = stage?.clientHeight || window.innerHeight
 
-      refs.camera.aspect = nextSize.width / nextSize.height
-      refs.camera.updateProjectionMatrix()
-      refs.renderer.setSize(nextSize.width, nextSize.height)
-      refs.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2))
-      refs.composer.setSize(nextSize.width, nextSize.height)
-      refs.bloomPass.setSize(nextSize.width, nextSize.height)
+      if (refs.camera && refs.renderer && refs.composer) {
+        refs.camera.aspect = width / height
+        refs.camera.updateProjectionMatrix()
+        refs.renderer.setSize(width, height)
+        refs.composer.setSize(width, height)
+      }
     }
 
     window.addEventListener('resize', handleResize)
 
-    refs.scrollTrigger = ScrollTrigger.create({
-      trigger: section,
-      start: 'top top',
-      end: 'bottom top',
-      scrub: true,
-      onUpdate: (self) => {
-        const progress = self.progress
-        cameraTargetRef.current.x = (progress - 0.5) * 9
-        cameraTargetRef.current.y = 24 + progress * 11
-        cameraTargetRef.current.z = 145 - progress * 34
-
-        if (progressFillRef.current) {
-          progressFillRef.current.style.transform = `scaleX(${Math.max(progress, 0.04)})`
-        }
-      },
-    })
-
     return () => {
+      const { current: refs } = threeRefs
+
       if (refs.animationId) {
         cancelAnimationFrame(refs.animationId)
       }
 
       window.removeEventListener('resize', handleResize)
-      refs.scrollTrigger?.kill()
 
-      refs.objects.forEach((object) => {
-        object.geometry?.dispose()
-        disposeMaterial(object.material)
-        refs.scene?.remove(object)
+      refs.stars.forEach((starField) => {
+        starField.geometry.dispose()
+        starField.material.dispose()
       })
 
-      refs.composer?.dispose?.()
-      refs.bloomPass?.dispose?.()
-      refs.renderer?.dispose()
-      refs.renderer?.forceContextLoss?.()
+      refs.mountains.forEach((mountain) => {
+        mountain.geometry.dispose()
+        mountain.material.dispose()
+      })
 
-      refs.scene = null
-      refs.camera = null
-      refs.renderer = null
-      refs.composer = null
-      refs.bloomPass = null
-      refs.objects = []
-      refs.stars = []
-      refs.mountains = []
-      refs.nebula = null
-      refs.atmosphere = null
-      refs.grid = null
-      refs.animationId = null
-      refs.scrollTrigger = null
+      if (refs.nebula) {
+        refs.nebula.geometry.dispose()
+        refs.nebula.material.dispose()
+      }
+
+      if (refs.atmosphere) {
+        refs.atmosphere.geometry.dispose()
+        refs.atmosphere.material.dispose()
+      }
+
+      if (refs.composer) {
+        refs.composer.dispose()
+      }
+
+      if (refs.renderer) {
+        refs.renderer.dispose()
+      }
     }
   }, [])
+
+  const getLocation = () => {
+    const { current: refs } = threeRefs
+    const locations = []
+
+    refs.mountains.forEach((mountain, i) => {
+      locations[i] = mountain.position.z
+    })
+
+    refs.locations = locations
+  }
 
   useEffect(() => {
-    const section = sectionRef.current
+    if (!isReady) return undefined
 
-    if (!section) {
-      return undefined
+    const visibleTargets = [menuRef.current, scrollProgressRef.current, ...chapterRefs.current].filter(Boolean)
+
+    gsap.set(visibleTargets, {
+      visibility: 'visible',
+    })
+
+    const tl = gsap.timeline({
+      defaults: {
+        overwrite: 'auto',
+      },
+    })
+
+    if (menuRef.current && currentSection === 0) {
+      tl.from(menuRef.current, {
+        x: -100,
+        opacity: 0,
+        duration: 1,
+        ease: 'power3.out',
+      })
     }
 
-    const ctx = gsap.context(() => {
-      const timeline = gsap.timeline({
-        defaults: {
-          ease: 'power3.out',
-        },
-      })
+    const firstChapter = chapterRefs.current[0]
 
-      timeline
-        .from(sideRef.current, { x: -28, opacity: 0, duration: 0.8 })
-        .from(rolesRef.current?.children || [], { y: 18, opacity: 0, stagger: 0.08, duration: 0.65 }, '-=0.45')
-        .from(titleRef.current, { y: 46, opacity: 0, duration: 1 }, '-=0.35')
-        .from(subtitleRef.current, { y: 24, opacity: 0, duration: 0.75 }, '-=0.52')
-        .from(chaptersRef.current?.querySelectorAll('[data-hero-chapter]') || [], {
-          y: 18,
-          opacity: 0,
-          stagger: 0.12,
-          duration: 0.72,
-        }, '-=0.4')
-        .from(ctaRef.current?.children || [], { y: 18, opacity: 0, stagger: 0.1, duration: 0.65 }, '-=0.42')
-    }, section)
+    if (firstChapter) {
+      const titleChars = firstChapter.querySelectorAll('.title-char')
+      tl.from(titleChars, {
+        y: 200,
+        opacity: 0,
+        duration: 1.5,
+        stagger: 0.05,
+        ease: 'power4.out',
+      }, '-=0.5')
+    }
+
+    if (firstChapter) {
+      const subtitleLines = firstChapter.querySelectorAll('.subtitle-line')
+      tl.from(subtitleLines, {
+        y: 50,
+        opacity: 0,
+        duration: 1,
+        stagger: 0.2,
+        ease: 'power3.out',
+      }, '-=0.8')
+    }
+
+    if (scrollProgressRef.current && currentSection === 0) {
+      tl.from(scrollProgressRef.current, {
+        opacity: 0,
+        y: 50,
+        duration: 1,
+        ease: 'power2.out',
+      }, '-=0.5')
+    }
 
     return () => {
-      ctx.revert()
+      tl.kill()
     }
-  }, [])
+  }, [isReady])
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const container = containerRef.current
+
+      if (!container) {
+        return
+      }
+
+      const rect = container.getBoundingClientRect()
+      const scrollableDistance = Math.max(rect.height - window.innerHeight, 1)
+      const progress = Math.min(Math.max(-rect.top / scrollableDistance, 0), 1)
+
+      targetScrollProgress.current = progress
+    }
+
+    window.addEventListener('scroll', handleScroll)
+    handleScroll()
+
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [totalSections])
+
+  const splitTitle = (text) => {
+    return text.split('').map((char, i) => (
+      <span key={i} className="title-char">
+        {char}
+      </span>
+    ))
+  }
 
   return (
-    <section
-      ref={sectionRef}
-      className="relative isolate min-h-[calc(100vh-8rem)] overflow-hidden border border-line bg-ink shadow-panel sm:min-h-[calc(100vh-7rem)]"
-      aria-labelledby="hero-title"
-    >
-      <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />
+    <div ref={containerRef} className="hero-container cosmos-style">
+      <div ref={stageRef} className="hero-stage">
+        <canvas ref={canvasRef} className="hero-canvas" />
 
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_68%_18%,rgba(124,140,255,0.22),transparent_28%),linear-gradient(180deg,rgba(5,7,11,0.12),rgba(5,7,11,0.92))]" aria-hidden="true" />
-      <div className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-ink to-transparent" aria-hidden="true" />
-
-      <div
-        ref={sideRef}
-        className="pointer-events-none absolute left-5 top-8 z-10 hidden items-center gap-4 text-xs uppercase tracking-[0.48em] text-muted sm:flex"
-      >
-        <span className="h-px w-12 bg-accent/50" />
-        <span>BACKEND LAB</span>
-      </div>
-
-      <div className="relative z-10 flex min-h-[calc(100vh-8rem)] items-center px-5 py-20 sm:min-h-[calc(100vh-7rem)] sm:px-8 lg:px-12">
-        <div className="grid w-full gap-10 lg:grid-cols-[1.05fr_0.55fr] lg:items-end">
-          <div className="max-w-5xl">
-            <div ref={rolesRef} className="flex flex-wrap gap-2">
-              {roles.map((role) => (
-                <span
-                  key={role}
-                  className="border border-line bg-panel/70 px-3 py-1 text-xs uppercase tracking-[0.22em] text-muted backdrop-blur"
-                >
-                  {role}
-                </span>
-              ))}
-            </div>
-
-            <h1
-              id="hero-title"
-              ref={titleRef}
-              className="mt-7 text-[clamp(3.2rem,14vw,10rem)] font-semibold uppercase leading-none tracking-[0.04em] text-foreground"
-            >
-              PORTFOLIO
-            </h1>
-
-            <p ref={subtitleRef} className="mt-6 max-w-2xl text-base leading-8 text-slate-300 sm:text-lg">
-              A digital space for backend systems, software engineering, and technical exploration.
-            </p>
-
-            <div ref={chaptersRef} className="mt-8 grid max-w-3xl gap-3 sm:grid-cols-2">
-              {chapters.map((chapter) => (
-                <article
-                  key={chapter.title}
-                  data-hero-chapter
-                  className="border border-line bg-panel/65 p-4 shadow-glow backdrop-blur"
-                >
-                  <p className="text-xs uppercase tracking-[0.32em] text-accent">{chapter.title}</p>
-                  <p className="mt-3 text-sm leading-6 text-muted">{chapter.description}</p>
-                </article>
-              ))}
-            </div>
-
-            <div ref={ctaRef} className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <a
-                className="inline-flex items-center justify-center border border-accent bg-accent-soft px-5 py-3 text-sm font-medium text-foreground shadow-glow transition-colors hover:bg-panelStrong"
-                href="#projects"
-              >
-                View Projects
-              </a>
-              <a
-                className="inline-flex items-center justify-center border border-line bg-ink/45 px-5 py-3 text-sm font-medium text-foreground transition-colors hover:border-accent hover:bg-panelStrong"
-                href="#contact"
-              >
-                Contact Me
-              </a>
-            </div>
+        <div ref={menuRef} className="side-menu" style={{ visibility: 'hidden' }}>
+          <div className="menu-icon">
+            <span />
+            <span />
+            <span />
           </div>
+          <div className="vertical-text">SPACE</div>
+        </div>
 
-          <aside className="hidden border border-line bg-panel/55 p-5 shadow-panel backdrop-blur lg:block">
-            <div className="mb-5 flex items-center justify-between text-xs uppercase tracking-[0.22em] text-muted">
-              <span>BACKEND LAB</span>
-              <span>LIVE SYSTEM</span>
-            </div>
-            <div className="space-y-3">
-              {['API Layer', 'Data Flow', 'Cloud Path', 'Security Boundary'].map((item, index) => (
-                <div key={item} className="flex items-center gap-4 border border-line bg-ink/65 p-3">
-                  <span className="flex h-8 w-8 items-center justify-center border border-accent/35 text-xs text-foreground">
-                    {String(index + 1).padStart(2, '0')}
-                  </span>
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{item}</p>
-                    <p className="mt-1 text-xs text-muted">Portfolio signal layer</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </aside>
+        <div className="scroll-sections hero-content cosmos-content">
+          {chapters.map((chapter, index) => (
+            <section
+              key={chapter.title}
+              ref={(node) => {
+                chapterRefs.current[index] = node
+              }}
+              className="content-section"
+            >
+              <h1 className="hero-title">{splitTitle(chapter.title)}</h1>
+
+              <div className="hero-subtitle cosmos-subtitle">
+                <p className="subtitle-line">{chapter.line1}</p>
+                <p className="subtitle-line">{chapter.line2}</p>
+              </div>
+            </section>
+          ))}
+        </div>
+
+        <div ref={scrollProgressRef} className="scroll-progress" style={{ visibility: 'hidden' }}>
+          <div className="scroll-text">SCROLL</div>
+          <div className="progress-track">
+            <div ref={progressFillRef} className="progress-fill" />
+          </div>
+          <div className="section-counter">
+            {String(currentSection + 1).padStart(2, '0')} / {String(totalSections).padStart(2, '0')}
+          </div>
         </div>
       </div>
-
-      <div className="absolute bottom-6 left-5 right-5 z-10 flex items-center gap-4 text-xs uppercase tracking-[0.24em] text-muted sm:left-8 sm:right-8 lg:left-12 lg:right-12">
-        <span>Scroll</span>
-        <div className="h-px flex-1 overflow-hidden bg-line">
-          <div
-            ref={progressFillRef}
-            className="h-full origin-left scale-x-[0.04] bg-accent transition-transform duration-150"
-          />
-        </div>
-        <span>Explore</span>
-      </div>
-    </section>
+    </div>
   )
 }

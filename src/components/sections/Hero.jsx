@@ -1,5 +1,5 @@
-import AnimatedHero from '../animated/AnimatedHero'
+import { Component as HorizonHeroSection } from '../ui/horizon-hero-section'
 
 export default function Hero() {
-  return <AnimatedHero />
+  return <HorizonHeroSection />
 }
