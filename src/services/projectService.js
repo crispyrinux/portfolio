@@ -77,6 +77,39 @@ export async function getPublicProjects() {
   return projects.length > 0 ? projects : getVisibleFallbackProjects()
 }
 
+export async function getAdminProjects() {
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      projects: [],
+      error: 'Supabase is not configured. Admin dashboard uses real CMS data only.',
+    }
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('projects')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      return {
+        projects: [],
+        error: error.message || 'Admin projects could not be loaded.',
+      }
+    }
+
+    return {
+      projects: Array.isArray(data) ? data : [],
+      error: null,
+    }
+  } catch (error) {
+    return {
+      projects: [],
+      error: error instanceof Error ? error.message : 'Admin projects could not be loaded.',
+    }
+  }
+}
+
 export async function getProjectBySlug(slug) {
   const routeSlug = slugify(slug)
 
