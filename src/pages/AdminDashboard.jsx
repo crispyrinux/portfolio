@@ -4,7 +4,7 @@ import AdminLayout from '../components/admin/AdminLayout'
 import EmptyState from '../components/common/EmptyState'
 import ErrorState from '../components/common/ErrorState'
 import LoadingState from '../components/common/LoadingState'
-import { getAdminProjects } from '../services/projectService'
+import { archiveProject, getAdminProjects } from '../services/projectService'
 
 function formatDate(value) {
   if (!value) {
@@ -48,17 +48,28 @@ function OverviewCard({ label, value }) {
   )
 }
 
-function ArchivePlaceholderButton({ isArchived }) {
-  const label = isArchived ? 'Archive action unavailable' : 'Archive coming next'
+function ArchiveActionButton({ isArchived, isBusy, onArchive }) {
+  if (isArchived) {
+    return (
+      <button
+        className="inline-flex cursor-not-allowed border border-slate-800 px-3 py-1.5 text-xs font-medium text-slate-600"
+        disabled
+        title="Restore and delete actions will be implemented later."
+        type="button"
+      >
+        Archived
+      </button>
+    )
+  }
 
   return (
     <button
-      className="inline-flex cursor-not-allowed border border-slate-800 px-3 py-1.5 text-xs font-medium text-slate-600"
-      disabled
-      title="Archive, restore, and delete actions will be implemented later."
+      className="inline-flex border border-amber-400/40 px-3 py-1.5 text-xs font-medium text-amber-100 transition-colors hover:bg-amber-400/10 disabled:cursor-not-allowed disabled:opacity-60"
+      disabled={isBusy}
+      onClick={onArchive}
       type="button"
     >
-      {label}
+      {isBusy ? 'Archiving...' : 'Archive'}
     </button>
   )
 }
@@ -67,6 +78,9 @@ export default function AdminDashboard() {
   const [projects, setProjects] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [actionError, setActionError] = useState(null)
+  const [successMessage, setSuccessMessage] = useState(null)
+  const [archivingProjectId, setArchivingProjectId] = useState(null)
 
   useEffect(() => {
     let isMounted = true
@@ -92,6 +106,42 @@ export default function AdminDashboard() {
       isMounted = false
     }
   }, [])
+
+  async function refreshProjects() {
+    const result = await getAdminProjects()
+    setProjects(result.projects)
+    setError(result.error)
+  }
+
+  async function handleArchiveProject(project) {
+    if (!project?.id || project.is_archived === true || archivingProjectId) {
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Archive "${project.title}"? It will be hidden from the public portfolio but kept in the CMS.`,
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    setActionError(null)
+    setSuccessMessage(null)
+    setArchivingProjectId(project.id)
+
+    const result = await archiveProject(project.id)
+
+    if (result.error) {
+      setActionError(result.error)
+      setArchivingProjectId(null)
+      return
+    }
+
+    await refreshProjects()
+    setSuccessMessage(`Archived "${project.title}".`)
+    setArchivingProjectId(null)
+  }
 
   const overview = useMemo(() => {
     const total = projects.length
@@ -125,6 +175,18 @@ export default function AdminDashboard() {
             New Project
           </Link>
         </div>
+
+        {successMessage ? (
+          <div className="border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm text-emerald-100">
+            {successMessage}
+          </div>
+        ) : null}
+
+        {actionError ? (
+          <div className="border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-100" role="alert">
+            {actionError}
+          </div>
+        ) : null}
 
         {isLoading ? (
           <LoadingState label="Loading CMS projects..." />
@@ -198,7 +260,11 @@ export default function AdminDashboard() {
                                     Edit
                                   </Link>
                                 ) : null}
-                                <ArchivePlaceholderButton isArchived={project.is_archived === true} />
+                                <ArchiveActionButton
+                                  isArchived={project.is_archived === true}
+                                  isBusy={archivingProjectId === project.id}
+                                  onArchive={() => handleArchiveProject(project)}
+                                />
                               </div>
                             </td>
                           </tr>
