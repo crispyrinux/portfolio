@@ -5,6 +5,10 @@ import EmptyState from '../components/common/EmptyState'
 import ErrorState from '../components/common/ErrorState'
 import LoadingState from '../components/common/LoadingState'
 import { createProject, getAdminProjectById, updateProject } from '../services/projectService'
+import { deleteStorageFile, uploadProjectThumbnail } from '../services/storageService'
+
+const THUMBNAIL_BUCKET = 'project-thumbnails'
+const MAX_THUMBNAIL_SIZE_BYTES = 5 * 1024 * 1024
 
 const initialFormState = {
   title: '',
@@ -24,6 +28,7 @@ const initialFormState = {
   what_i_learned: '',
   is_featured: false,
   display_order: '',
+  thumbnail_url: '',
 }
 
 function FieldGroup({ title, description, children }) {
@@ -90,6 +95,22 @@ function getStringValue(value) {
   return value === null || value === undefined ? '' : String(value)
 }
 
+function validateThumbnailFile(file) {
+  if (!file) {
+    return null
+  }
+
+  if (!String(file.type || '').startsWith('image/')) {
+    return 'Thumbnail must be an image file.'
+  }
+
+  if (typeof file.size === 'number' && file.size > MAX_THUMBNAIL_SIZE_BYTES) {
+    return 'Thumbnail must be 5 MB or smaller.'
+  }
+
+  return null
+}
+
 function mapProjectToFormState(project) {
   return {
     title: getStringValue(project.title),
@@ -109,6 +130,7 @@ function mapProjectToFormState(project) {
     what_i_learned: getStringValue(project.what_i_learned),
     is_featured: project.is_featured === true,
     display_order: getStringValue(project.display_order),
+    thumbnail_url: getStringValue(project.thumbnail_url),
   }
 }
 
@@ -121,9 +143,12 @@ export default function ProjectForm() {
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState(null)
   const [validationError, setValidationError] = useState(null)
+  const [thumbnailError, setThumbnailError] = useState(null)
   const [successMessage, setSuccessMessage] = useState(null)
   const [loadError, setLoadError] = useState(null)
   const [notFound, setNotFound] = useState(false)
+  const [thumbnailFile, setThumbnailFile] = useState(null)
+  const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState('')
 
   useEffect(() => {
     if (!isEditMode) {
@@ -131,6 +156,9 @@ export default function ProjectForm() {
       setIsLoadingProject(false)
       setLoadError(null)
       setNotFound(false)
+      setThumbnailFile(null)
+      setThumbnailPreviewUrl('')
+      setThumbnailError(null)
       return
     }
 
@@ -160,6 +188,9 @@ export default function ProjectForm() {
       }
 
       setFormData(mapProjectToFormState(result.project))
+      setThumbnailFile(null)
+      setThumbnailPreviewUrl('')
+      setThumbnailError(null)
       setIsLoadingProject(false)
     }
 
@@ -169,6 +200,20 @@ export default function ProjectForm() {
       isMounted = false
     }
   }, [id, isEditMode])
+
+  useEffect(() => {
+    if (!thumbnailFile) {
+      setThumbnailPreviewUrl('')
+      return undefined
+    }
+
+    const objectUrl = URL.createObjectURL(thumbnailFile)
+    setThumbnailPreviewUrl(objectUrl)
+
+    return () => {
+      URL.revokeObjectURL(objectUrl)
+    }
+  }, [thumbnailFile])
 
   function handleChange(event) {
     const { checked, name, type, value } = event.target
@@ -183,10 +228,34 @@ export default function ProjectForm() {
     }))
   }
 
+  function handleThumbnailChange(event) {
+    const file = event.target.files?.[0] ?? null
+
+    if (!file) {
+      setThumbnailFile(null)
+      setThumbnailError(null)
+      return
+    }
+
+    const fileError = validateThumbnailFile(file)
+
+    if (fileError) {
+      setThumbnailFile(null)
+      setThumbnailPreviewUrl('')
+      setThumbnailError(fileError)
+      event.target.value = ''
+      return
+    }
+
+    setThumbnailError(null)
+    setThumbnailFile(file)
+  }
+
   async function handleSubmit(event) {
     event.preventDefault()
     setError(null)
     setValidationError(null)
+    setThumbnailError(null)
     setSuccessMessage(null)
 
     if (!formData.title.trim()) {
@@ -194,9 +263,65 @@ export default function ProjectForm() {
       return
     }
 
+    const thumbnailValidationError = validateThumbnailFile(thumbnailFile)
+
+    if (thumbnailValidationError) {
+      setThumbnailError(thumbnailValidationError)
+      return
+    }
+
     setIsSaving(true)
 
-    const result = isEditMode ? await updateProject(id, formData) : await createProject(formData)
+    if (isEditMode) {
+      if (thumbnailFile) {
+        const thumbnailUploadResult = await uploadProjectThumbnail(thumbnailFile, id)
+
+        if (thumbnailUploadResult.error) {
+          setThumbnailError(thumbnailUploadResult.error)
+          setIsSaving(false)
+          return
+        }
+
+        const result = await updateProject(id, {
+          ...formData,
+          thumbnail_url: thumbnailUploadResult.publicUrl,
+        })
+
+        if (result.error) {
+          await deleteStorageFile(THUMBNAIL_BUCKET, thumbnailUploadResult.path)
+          setError(result.error)
+          setIsSaving(false)
+          return
+        }
+
+        setFormData((currentData) => ({
+          ...currentData,
+          thumbnail_url: thumbnailUploadResult.publicUrl ?? '',
+        }))
+
+        setSuccessMessage('Project updated. Returning to dashboard...')
+        window.setTimeout(() => {
+          navigate('/admin/dashboard')
+        }, 700)
+        return
+      }
+
+      const result = await updateProject(id, formData)
+
+      if (result.error) {
+        setError(result.error)
+        setIsSaving(false)
+        return
+      }
+
+      setSuccessMessage('Project updated. Returning to dashboard...')
+      window.setTimeout(() => {
+        navigate('/admin/dashboard')
+      }, 700)
+      return
+    }
+
+    const result = await createProject(formData)
 
     if (result.error) {
       setError(result.error)
@@ -204,7 +329,34 @@ export default function ProjectForm() {
       return
     }
 
-    setSuccessMessage(isEditMode ? 'Project updated. Returning to dashboard...' : 'Project created. Returning to dashboard...')
+    if (thumbnailFile && result.project?.id) {
+      const thumbnailUploadResult = await uploadProjectThumbnail(thumbnailFile, result.project.id)
+
+      if (thumbnailUploadResult.error) {
+        setThumbnailError(`Project was created, but thumbnail upload failed: ${thumbnailUploadResult.error}`)
+        setIsSaving(false)
+        return
+      }
+
+      const thumbnailUpdateResult = await updateProject(result.project.id, {
+        ...formData,
+        thumbnail_url: thumbnailUploadResult.publicUrl,
+      })
+
+      if (thumbnailUpdateResult.error) {
+        await deleteStorageFile(THUMBNAIL_BUCKET, thumbnailUploadResult.path)
+        setError(`Project was created, but thumbnail URL could not be saved: ${thumbnailUpdateResult.error}`)
+        setIsSaving(false)
+        return
+      }
+
+      setFormData((currentData) => ({
+        ...currentData,
+        thumbnail_url: thumbnailUploadResult.publicUrl ?? '',
+      }))
+    }
+
+    setSuccessMessage('Project created. Returning to dashboard...')
 
     window.setTimeout(() => {
       navigate('/admin/dashboard')
@@ -265,6 +417,10 @@ export default function ProjectForm() {
       </AdminLayout>
     )
   }
+
+  const thumbnailSource = thumbnailPreviewUrl || formData.thumbnail_url
+  const hasThumbnailSource = Boolean(thumbnailSource)
+  const isThumbnailPlaceholder = thumbnailSource === '#'
 
   return (
     <AdminLayout
@@ -346,6 +502,69 @@ export default function ProjectForm() {
               type="number"
               value={formData.year}
             />
+          </div>
+
+          <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
+            <label className="grid gap-2" htmlFor="thumbnail_file">
+              <span className="text-sm font-medium text-slate-300">Thumbnail</span>
+              <input
+                accept="image/*"
+                className="border border-slate-800 bg-[#05070b] px-4 py-3 text-sm text-slate-300 file:mr-4 file:border-0 file:bg-slate-800 file:px-4 file:py-2 file:text-xs file:font-medium file:uppercase file:tracking-[0.18em] file:text-slate-100 hover:file:bg-slate-700"
+                id="thumbnail_file"
+                name="thumbnail_file"
+                onChange={handleThumbnailChange}
+                type="file"
+              />
+              <span className="text-xs leading-5 text-slate-500">
+                Optional. Upload a thumbnail image up to 5 MB.
+              </span>
+              {thumbnailError ? (
+                <span className="text-xs leading-5 text-rose-300" role="alert">
+                  {thumbnailError}
+                </span>
+              ) : thumbnailFile ? (
+                <span className="text-xs leading-5 text-cyan-200">Selected file: {thumbnailFile.name}</span>
+              ) : formData.thumbnail_url ? (
+                <span className="text-xs leading-5 text-slate-400">
+                  Current thumbnail is already saved. Select a new file to replace it.
+                </span>
+              ) : null}
+            </label>
+
+            <div className="overflow-hidden border border-slate-800 bg-[#05070b]">
+              {hasThumbnailSource ? (
+                isThumbnailPlaceholder ? (
+                  <div className="flex min-h-44 items-center justify-center px-6 text-center">
+                    <div className="grid gap-2">
+                      <span className="text-xs uppercase tracking-[0.28em] text-slate-500">
+                        Thumbnail Placeholder
+                      </span>
+                      <span className="text-sm text-slate-400">
+                        This project currently uses a placeholder thumbnail.
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <img
+                    alt="Project thumbnail preview"
+                    className="min-h-44 w-full object-cover"
+                    onError={(event) => {
+                      event.currentTarget.hidden = true
+                    }}
+                    src={thumbnailSource}
+                  />
+                )
+              ) : (
+                <div className="flex min-h-44 items-center justify-center px-6 text-center">
+                  <div className="grid gap-2">
+                    <span className="text-xs uppercase tracking-[0.28em] text-slate-500">No Thumbnail Yet</span>
+                    <span className="text-sm text-slate-400">
+                      The project will still work with a clean placeholder if no thumbnail is added.
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </FieldGroup>
 
