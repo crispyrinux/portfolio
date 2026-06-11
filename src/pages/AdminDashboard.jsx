@@ -48,6 +48,21 @@ function OverviewCard({ label, value }) {
   )
 }
 
+function ArchivePlaceholderButton({ isArchived }) {
+  const label = isArchived ? 'Archive action unavailable' : 'Archive coming next'
+
+  return (
+    <button
+      className="inline-flex cursor-not-allowed border border-slate-800 px-3 py-1.5 text-xs font-medium text-slate-600"
+      disabled
+      title="Archive, restore, and delete actions will be implemented later."
+      type="button"
+    >
+      {label}
+    </button>
+  )
+}
+
 export default function AdminDashboard() {
   const [projects, setProjects] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -164,12 +179,10 @@ export default function AdminDashboard() {
                             </td>
                             <td className="px-5 py-4 align-top">
                               <div className="flex flex-wrap gap-2">
-                                <StatusBadge tone={project.is_featured ? 'cyan' : 'slate'}>
-                                  {project.is_featured ? 'Featured' : 'Standard'}
-                                </StatusBadge>
                                 <StatusBadge tone={project.is_archived ? 'amber' : 'slate'}>
                                   {project.is_archived ? 'Archived' : 'Active'}
                                 </StatusBadge>
+                                {project.is_featured ? <StatusBadge tone="cyan">Featured</StatusBadge> : null}
                               </div>
                             </td>
                             <td className="px-5 py-4 align-top text-slate-400">
@@ -185,13 +198,7 @@ export default function AdminDashboard() {
                                     Edit
                                   </Link>
                                 ) : null}
-                                <button
-                                  className="inline-flex cursor-not-allowed border border-slate-800 px-3 py-1.5 text-xs font-medium text-slate-600"
-                                  disabled
-                                  type="button"
-                                >
-                                  Archive coming next
-                                </button>
+                                <ArchivePlaceholderButton isArchived={project.is_archived === true} />
                               </div>
                             </td>
                           </tr>
