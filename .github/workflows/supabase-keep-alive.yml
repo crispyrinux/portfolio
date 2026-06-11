@@ -1,0 +1,77 @@
+name: Supabase Keep Alive
+
+on:
+  # Run automatically every 3 days to keep the Supabase Free project lightly active.
+  schedule:
+    - cron: '0 5 */3 * *'
+  # Manual fallback so the workflow can be triggered from the GitHub Actions tab.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check required secrets
+        shell: bash
+        env:
+          # GitHub repository secrets required for this workflow:
+          # - SUPABASE_URL
+          # - SUPABASE_ANON_KEY
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SUPABASE_URL}" ] || [ -z "${SUPABASE_ANON_KEY}" ]; then
+            echo "Missing SUPABASE_URL or SUPABASE_ANON_KEY GitHub secret."
+            exit 1
+          fi
+
+      - name: Touch Supabase REST API
+        shell: bash
+        env:
+          # The workflow only uses the anon key. Never add a service role key here.
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          set -euo pipefail
+
+          response_file="$(mktemp)"
+          http_code="000"
+
+          set +e
+          http_code="$(curl \
+            --silent \
+            --show-error \
+            --request GET \
+            --output "$response_file" \
+            --write-out '%{http_code}' \
+            --header "apikey: ${SUPABASE_ANON_KEY}" \
+            --header "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+            --header "Accept: application/json" \
+            "${SUPABASE_URL}/rest/v1/projects?select=id&limit=1")"
+          curl_exit=$?
+          set -e
+
+          if [ "$curl_exit" -ne 0 ]; then
+            echo "Supabase keep-alive request failed while contacting the REST API."
+            if [ -s "$response_file" ]; then
+              echo "Response body:"
+              cat "$response_file"
+            fi
+            exit 1
+          fi
+
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "Supabase keep-alive request returned HTTP $http_code."
+            if [ -s "$response_file" ]; then
+              echo "Response body:"
+              cat "$response_file"
+            fi
+            exit 1
+          fi
+
+          echo "Supabase keep-alive request succeeded with HTTP $http_code."
