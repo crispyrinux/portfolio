@@ -20,38 +20,52 @@ const linkBlocks = [
   { key: 'documentation_url', label: 'Documentation' },
 ]
 
+function MediaFallback({ label, title }) {
+  return (
+    <div className="absolute inset-0 flex items-center justify-center overflow-hidden bg-ink">
+      <div
+        className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(124,140,255,0.2),transparent_50%),linear-gradient(135deg,rgba(148,163,184,0.08),rgba(5,7,11,0.96))]"
+        aria-hidden="true"
+      />
+      <div
+        className="absolute inset-x-10 top-1/2 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent"
+        aria-hidden="true"
+      />
+      <div className="relative grid gap-3 text-center">
+        <span className="text-[10px] uppercase tracking-[0.35em] text-muted">{label}</span>
+        {title ? <span className="text-sm font-medium text-foreground">{title}</span> : null}
+      </div>
+    </div>
+  )
+}
+
 function ProjectThumbnail({ thumbnailUrl, title }) {
+  const [hasImageError, setHasImageError] = useState(false)
+
   if (!thumbnailUrl) {
     return null
   }
 
-  const isPlaceholder = thumbnailUrl === '#'
+  const shouldShowImage = thumbnailUrl !== '#' && !hasImageError
 
   return (
     <div className="overflow-hidden border border-line bg-ink shadow-panel">
       <div className="relative aspect-[16/9] overflow-hidden bg-panelStrong">
-        <div
-          className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(124,140,255,0.18),transparent_55%),linear-gradient(180deg,rgba(15,22,34,0.35),rgba(5,7,11,0.95))]"
-          aria-hidden="true"
+        <MediaFallback
+          label={hasImageError ? 'Thumbnail unavailable' : 'Thumbnail placeholder'}
+          title={title}
         />
-
-        {isPlaceholder ? (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="border border-accent/40 bg-ink/80 px-4 py-2 text-[10px] uppercase tracking-[0.35em] text-muted">
-              Thumbnail Placeholder
-            </div>
-          </div>
-        ) : (
+        {shouldShowImage ? (
           <img
-            alt={`${title} thumbnail`}
+            alt={`${title} project thumbnail`}
             className="absolute inset-0 h-full w-full object-cover"
             loading="lazy"
-            onError={(event) => {
-              event.currentTarget.hidden = true
+            onError={() => {
+              setHasImageError(true)
             }}
             src={thumbnailUrl}
           />
-        )}
+        ) : null}
       </div>
     </div>
   )
@@ -127,6 +141,40 @@ function ProjectErrorState({ message }) {
 
 function getScreenshotImageUrl(screenshot) {
   return screenshot?.image_url || screenshot?.url || ''
+}
+
+function ScreenshotFigure({ projectTitle, screenshot, index }) {
+  const [hasImageError, setHasImageError] = useState(false)
+  const imageUrl = getScreenshotImageUrl(screenshot)
+  const altText = screenshot.alt || `${projectTitle} screenshot ${index + 1}`
+  const shouldShowImage = Boolean(imageUrl && !hasImageError)
+
+  return (
+    <figure className="overflow-hidden border border-line bg-ink">
+      <div className="relative aspect-video bg-ink">
+        <MediaFallback
+          label={hasImageError ? 'Screenshot unavailable' : 'Screenshot preview'}
+          title={`${projectTitle} ${index + 1}`}
+        />
+        {shouldShowImage ? (
+          <img
+            alt={altText}
+            className="absolute inset-0 h-full w-full bg-ink object-cover"
+            loading="lazy"
+            onError={() => {
+              setHasImageError(true)
+            }}
+            src={imageUrl}
+          />
+        ) : null}
+      </div>
+      {screenshot.caption ? (
+        <figcaption className="border-t border-line px-4 py-3 text-sm leading-6 text-muted">
+          {screenshot.caption}
+        </figcaption>
+      ) : null}
+    </figure>
+  )
 }
 
 export default function ProjectDetail() {
@@ -393,31 +441,14 @@ export default function ProjectDetail() {
           <section className="border border-line bg-panel/75 p-6 shadow-panel sm:p-8">
             <p className="text-xs uppercase tracking-[0.22em] text-muted">Screenshots</p>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              {displayableScreenshots.map((screenshot, index) => {
-                const imageUrl = getScreenshotImageUrl(screenshot)
-
-                return (
-                  <figure
-                    key={screenshot.id || imageUrl || index}
-                    className="overflow-hidden border border-line bg-ink"
-                  >
-                    <img
-                      alt={screenshot.alt || `${project.title} screenshot ${index + 1}`}
-                      className="aspect-video w-full bg-ink object-cover"
-                      loading="lazy"
-                      onError={(event) => {
-                        event.currentTarget.hidden = true
-                      }}
-                      src={imageUrl}
-                    />
-                    {screenshot.caption ? (
-                      <figcaption className="border-t border-line px-4 py-3 text-sm leading-6 text-muted">
-                        {screenshot.caption}
-                      </figcaption>
-                    ) : null}
-                  </figure>
-                )
-              })}
+              {displayableScreenshots.map((screenshot, index) => (
+                <ScreenshotFigure
+                  key={screenshot.id || getScreenshotImageUrl(screenshot) || index}
+                  projectTitle={project.title}
+                  screenshot={screenshot}
+                  index={index}
+                />
+              ))}
             </div>
           </section>
         ) : null}

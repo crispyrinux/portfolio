@@ -130,6 +130,66 @@ function getScreenshotImageUrl(screenshot) {
   return screenshot?.image_url || screenshot?.url || ''
 }
 
+function AdminImagePreview({
+  src,
+  alt,
+  emptyLabel,
+  emptyDescription,
+  placeholderLabel = 'Media Placeholder',
+  placeholderDescription = 'This media slot currently uses a placeholder.',
+  brokenLabel = 'Media Unavailable',
+  brokenDescription = 'The saved image could not be loaded.',
+  imageClassName = 'min-h-44 w-full object-cover',
+  frameClassName = 'min-h-44',
+}) {
+  const [hasImageError, setHasImageError] = useState(false)
+
+  useEffect(() => {
+    setHasImageError(false)
+  }, [src])
+
+  const hasSource = Boolean(src)
+  const isPlaceholder = src === '#'
+  const shouldShowImage = hasSource && !isPlaceholder && !hasImageError
+  let label = emptyLabel
+  let description = emptyDescription
+
+  if (isPlaceholder) {
+    label = placeholderLabel
+    description = placeholderDescription
+  } else if (hasImageError) {
+    label = brokenLabel
+    description = brokenDescription
+  }
+
+  if (shouldShowImage) {
+    return (
+      <img
+        alt={alt}
+        className={imageClassName}
+        loading="lazy"
+        onError={() => {
+          setHasImageError(true)
+        }}
+        src={src}
+      />
+    )
+  }
+
+  return (
+    <div className={`relative flex items-center justify-center overflow-hidden px-6 text-center ${frameClassName}`}>
+      <div
+        className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(103,232,249,0.12),transparent_48%),linear-gradient(135deg,rgba(148,163,184,0.08),rgba(5,7,11,0.96))]"
+        aria-hidden="true"
+      />
+      <div className="relative grid gap-2">
+        <span className="text-xs uppercase tracking-[0.28em] text-slate-500">{label}</span>
+        {description ? <span className="text-sm text-slate-400">{description}</span> : null}
+      </div>
+    </div>
+  )
+}
+
 function mapProjectToFormState(project) {
   return {
     title: getStringValue(project.title),
@@ -719,38 +779,16 @@ export default function ProjectForm() {
             </label>
 
             <div className="overflow-hidden border border-slate-800 bg-[#05070b]">
-              {hasThumbnailSource ? (
-                isThumbnailPlaceholder ? (
-                  <div className="flex min-h-44 items-center justify-center px-6 text-center">
-                    <div className="grid gap-2">
-                      <span className="text-xs uppercase tracking-[0.28em] text-slate-500">
-                        Thumbnail Placeholder
-                      </span>
-                      <span className="text-sm text-slate-400">
-                        This project currently uses a placeholder thumbnail.
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <img
-                    alt="Project thumbnail preview"
-                    className="min-h-44 w-full object-cover"
-                    onError={(event) => {
-                      event.currentTarget.hidden = true
-                    }}
-                    src={thumbnailSource}
-                  />
-                )
-              ) : (
-                <div className="flex min-h-44 items-center justify-center px-6 text-center">
-                  <div className="grid gap-2">
-                    <span className="text-xs uppercase tracking-[0.28em] text-slate-500">No Thumbnail Yet</span>
-                    <span className="text-sm text-slate-400">
-                      The project will still work with a clean placeholder if no thumbnail is added.
-                    </span>
-                  </div>
-                </div>
-              )}
+              <AdminImagePreview
+                src={hasThumbnailSource ? thumbnailSource : ''}
+                alt="Project thumbnail preview"
+                emptyLabel="No Thumbnail Yet"
+                emptyDescription="The project will still work with a clean placeholder if no thumbnail is added."
+                placeholderLabel={isThumbnailPlaceholder ? 'Thumbnail Placeholder' : 'No Thumbnail Yet'}
+                placeholderDescription="This project currently uses a placeholder thumbnail."
+                brokenLabel="Thumbnail Unavailable"
+                brokenDescription="The saved thumbnail could not be loaded."
+              />
             </div>
           </div>
         </FieldGroup>
@@ -962,19 +1000,25 @@ export default function ProjectForm() {
                     return (
                       <article key={screenshot.id} className="overflow-hidden border border-slate-800 bg-[#05070b]">
                         {imageUrl ? (
-                          <img
-                            alt={screenshot.caption || 'Project screenshot'}
-                            className="aspect-video w-full object-cover"
-                            loading="lazy"
-                            onError={(event) => {
-                              event.currentTarget.hidden = true
-                            }}
+                          <AdminImagePreview
                             src={imageUrl}
+                            alt={screenshot.caption || 'Project screenshot'}
+                            emptyLabel="Screenshot Unavailable"
+                            emptyDescription="This screenshot record does not have an image URL."
+                            brokenLabel="Screenshot Unavailable"
+                            brokenDescription="The saved screenshot could not be loaded."
+                            imageClassName="aspect-video w-full object-cover"
+                            frameClassName="aspect-video"
                           />
                         ) : (
-                          <div className="flex aspect-video items-center justify-center px-4 text-center text-sm text-slate-500">
-                            Screenshot URL unavailable
-                          </div>
+                          <AdminImagePreview
+                            src=""
+                            alt="Project screenshot unavailable"
+                            emptyLabel="Screenshot Unavailable"
+                            emptyDescription="This screenshot record does not have an image URL."
+                            imageClassName="aspect-video w-full object-cover"
+                            frameClassName="aspect-video"
+                          />
                         )}
 
                         <div className="grid gap-4 p-4">
@@ -983,6 +1027,7 @@ export default function ProjectForm() {
                           ) : null}
                           <button
                             className="inline-flex justify-center border border-rose-500/40 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-100 transition-colors hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                            aria-label={`Delete screenshot ${screenshot.caption || screenshot.id}`}
                             disabled={deletingScreenshotId === screenshot.id}
                             onClick={() => handleDeleteScreenshot(screenshot)}
                             type="button"
