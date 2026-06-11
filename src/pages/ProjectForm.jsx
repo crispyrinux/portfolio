@@ -28,7 +28,7 @@ const initialFormState = {
 
 function FieldGroup({ title, description, children }) {
   return (
-    <section className="border border-slate-800 bg-slate-950/70 p-6">
+    <section className="border border-slate-800 bg-slate-950/70 p-6 shadow-[0_20px_60px_rgba(0,0,0,0.18)]">
       <div className="mb-5">
         <h3 className="text-lg font-semibold tracking-tight text-white">{title}</h3>
         {description ? <p className="mt-2 text-sm leading-6 text-slate-400">{description}</p> : null}
@@ -38,7 +38,7 @@ function FieldGroup({ title, description, children }) {
   )
 }
 
-function TextInput({ id, label, value, onChange, required = false, type = 'text', placeholder }) {
+function TextInput({ id, label, value, onChange, required = false, type = 'text', placeholder, helperText }) {
   return (
     <label className="grid gap-2" htmlFor={id}>
       <span className="text-sm font-medium text-slate-300">
@@ -55,11 +55,12 @@ function TextInput({ id, label, value, onChange, required = false, type = 'text'
         type={type}
         value={value}
       />
+      {helperText ? <span className="text-xs leading-5 text-slate-500">{helperText}</span> : null}
     </label>
   )
 }
 
-function TextArea({ id, label, value, onChange, rows = 4, placeholder }) {
+function TextArea({ id, label, value, onChange, rows = 4, placeholder, helperText }) {
   return (
     <label className="grid gap-2" htmlFor={id}>
       <span className="text-sm font-medium text-slate-300">{label}</span>
@@ -72,6 +73,7 @@ function TextArea({ id, label, value, onChange, rows = 4, placeholder }) {
         rows={rows}
         value={value}
       />
+      {helperText ? <span className="text-xs leading-5 text-slate-500">{helperText}</span> : null}
     </label>
   )
 }
@@ -118,6 +120,8 @@ export default function ProjectForm() {
   const [isLoadingProject, setIsLoadingProject] = useState(isEditMode)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState(null)
+  const [validationError, setValidationError] = useState(null)
+  const [successMessage, setSuccessMessage] = useState(null)
   const [loadError, setLoadError] = useState(null)
   const [notFound, setNotFound] = useState(false)
 
@@ -169,6 +173,10 @@ export default function ProjectForm() {
   function handleChange(event) {
     const { checked, name, type, value } = event.target
 
+    if (name === 'title' && value.trim()) {
+      setValidationError(null)
+    }
+
     setFormData((currentData) => ({
       ...currentData,
       [name]: type === 'checkbox' ? checked : value,
@@ -178,6 +186,14 @@ export default function ProjectForm() {
   async function handleSubmit(event) {
     event.preventDefault()
     setError(null)
+    setValidationError(null)
+    setSuccessMessage(null)
+
+    if (!formData.title.trim()) {
+      setValidationError('Project title is required.')
+      return
+    }
+
     setIsSaving(true)
 
     const result = isEditMode ? await updateProject(id, formData) : await createProject(formData)
@@ -188,7 +204,11 @@ export default function ProjectForm() {
       return
     }
 
-    navigate('/admin/dashboard')
+    setSuccessMessage(isEditMode ? 'Project updated. Returning to dashboard...' : 'Project created. Returning to dashboard...')
+
+    window.setTimeout(() => {
+      navigate('/admin/dashboard')
+    }, 700)
   }
 
   if (isLoadingProject) {
@@ -255,16 +275,34 @@ export default function ProjectForm() {
           : 'Create a real Supabase CMS project. Only the title is required.'
       }
     >
-      <form className="space-y-6" onSubmit={handleSubmit}>
+      <form className="space-y-6" noValidate onSubmit={handleSubmit}>
+        {successMessage ? (
+          <div className="border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm text-emerald-100">
+            {successMessage}
+          </div>
+        ) : null}
+
+        {validationError ? (
+          <div className="border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-100" role="alert">
+            {validationError}
+          </div>
+        ) : null}
+
         {error ? (
           <div className="border border-rose-500/30 bg-rose-500/10 p-4 text-sm text-rose-100" role="alert">
             {error}
           </div>
         ) : null}
 
+        {isSaving ? (
+          <div className="border border-cyan-400/30 bg-cyan-400/10 p-4 text-sm text-cyan-100">
+            Saving project changes...
+          </div>
+        ) : null}
+
         <FieldGroup
           title="Basic Info"
-          description="Core project identity. Leave slug empty to generate it from the title."
+          description="Core project identity for CMS and public routing."
         >
           <div className="grid gap-5 lg:grid-cols-2">
             <TextInput
@@ -280,6 +318,7 @@ export default function ProjectForm() {
               label="Slug"
               onChange={handleChange}
               placeholder="backend-api-prototype"
+              helperText="Optional. Leave empty to generate a URL-friendly slug from the title."
               value={formData.slug}
             />
           </div>
@@ -319,6 +358,7 @@ export default function ProjectForm() {
             label="Overview"
             onChange={handleChange}
             placeholder="What this project is about."
+            rows={7}
             value={formData.overview}
           />
           <div className="grid gap-5 lg:grid-cols-3">
@@ -327,6 +367,7 @@ export default function ProjectForm() {
               label="Problem"
               onChange={handleChange}
               placeholder="Problem or context."
+              rows={7}
               value={formData.problem}
             />
             <TextArea
@@ -334,6 +375,7 @@ export default function ProjectForm() {
               label="Solution"
               onChange={handleChange}
               placeholder="How the project addresses it."
+              rows={7}
               value={formData.solution}
             />
             <TextArea
@@ -341,6 +383,7 @@ export default function ProjectForm() {
               label="Result"
               onChange={handleChange}
               placeholder="Outcome or current state."
+              rows={7}
               value={formData.result}
             />
           </div>
@@ -349,6 +392,7 @@ export default function ProjectForm() {
             label="What I Learned"
             onChange={handleChange}
             placeholder="Technical lessons or reflection."
+            rows={7}
             value={formData.what_i_learned}
           />
         </FieldGroup>
@@ -362,6 +406,7 @@ export default function ProjectForm() {
             label="Features"
             onChange={handleChange}
             placeholder="Authentication flow, API routing, deployment notes"
+            helperText="Optional. Separate multiple features with commas."
             rows={3}
             value={formData.features}
           />
@@ -370,6 +415,7 @@ export default function ProjectForm() {
             label="Tech Stack"
             onChange={handleChange}
             placeholder="React, Node.js, PostgreSQL, Supabase"
+            helperText="Optional. Separate technologies with commas."
             rows={3}
             value={formData.tech_stack}
           />
@@ -385,6 +431,7 @@ export default function ProjectForm() {
               label="GitHub URL"
               onChange={handleChange}
               placeholder="https://github.com/..."
+              helperText="Optional. Leave empty for projects without source code."
               value={formData.github_url}
             />
             <TextInput
@@ -392,6 +439,7 @@ export default function ProjectForm() {
               label="Demo Video URL"
               onChange={handleChange}
               placeholder="https://..."
+              helperText="Optional. Use only when a demo video exists."
               value={formData.demo_video_url}
             />
             <TextInput
@@ -399,6 +447,7 @@ export default function ProjectForm() {
               label="Documentation URL"
               onChange={handleChange}
               placeholder="https://..."
+              helperText="Optional. Useful for academic, cloud, documentation, or case-study projects."
               value={formData.documentation_url}
             />
           </div>
@@ -434,6 +483,7 @@ export default function ProjectForm() {
           <Link
             className="inline-flex justify-center border border-slate-700 px-5 py-3 text-sm font-medium text-slate-300 transition-colors hover:border-slate-500 hover:text-white"
             to="/admin/dashboard"
+            aria-disabled={isSaving}
           >
             Cancel
           </Link>
