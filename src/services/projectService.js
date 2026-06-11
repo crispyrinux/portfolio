@@ -164,6 +164,75 @@ function validateProjectId(id) {
   }
 }
 
+function validateScreenshotId(id) {
+  const screenshotId = normalizeOptionalText(id)
+
+  if (!screenshotId) {
+    return {
+      screenshotId: null,
+      error: 'Screenshot id is required.',
+    }
+  }
+
+  return {
+    screenshotId,
+    error: null,
+  }
+}
+
+function normalizeScreenshotInput(input = {}) {
+  const projectId = normalizeOptionalText(input.project_id)
+  const imageUrl = normalizeOptionalText(input.image_url)
+
+  if (!projectId) {
+    return {
+      payload: null,
+      error: 'Project id is required for screenshots.',
+    }
+  }
+
+  if (!imageUrl) {
+    return {
+      payload: null,
+      error: 'Screenshot image URL is required.',
+    }
+  }
+
+  return {
+    payload: {
+      project_id: projectId,
+      image_url: imageUrl,
+      caption: normalizeOptionalText(input.caption),
+      display_order: normalizeOptionalNumber(input.display_order),
+    },
+    error: null,
+  }
+}
+
+function normalizeScreenshotUpdateInput(input = {}) {
+  const payload = {}
+
+  if (Object.prototype.hasOwnProperty.call(input, 'caption')) {
+    payload.caption = normalizeOptionalText(input.caption)
+  }
+
+  if (Object.prototype.hasOwnProperty.call(input, 'display_order')) {
+    payload.display_order = normalizeOptionalNumber(input.display_order)
+  }
+
+  if (Object.keys(payload).length === 0) {
+    return {
+      payload: null,
+      error: 'No screenshot fields were provided for update.',
+    }
+  }
+
+  return {
+    payload,
+    error: null,
+  }
+}
+
 async function fetchProjectsWithFallbackOrder(orderClausesList) {
   let lastError = null
 
@@ -570,8 +639,192 @@ export async function getProjectBySlug(slug) {
 }
 
 export async function getProjectScreenshots(projectId) {
-  void projectId
+  const { projectId: normalizedProjectId, error: idError } = validateProjectId(projectId)
 
-  // Will be implemented later after the project_screenshots table or storage bucket is ready.
-  return []
+  if (idError || !isSupabaseConfigured || !supabase) {
+    return []
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('project_screenshots')
+      .select('*')
+      .eq('project_id', normalizedProjectId)
+      .order('display_order', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: true })
+
+    if (error) {
+      if (import.meta.env.DEV) {
+        console.warn('[Supabase] Failed to fetch project screenshots.', error)
+      }
+
+      return []
+    }
+
+    return Array.isArray(data) ? data : []
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.warn('[Supabase] Failed to fetch project screenshots.', error)
+    }
+
+    return []
+  }
+}
+
+export async function getAdminProjectScreenshots(projectId) {
+  return getProjectScreenshots(projectId)
+}
+
+export async function addProjectScreenshot(input) {
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      screenshot: null,
+      error: getAdminNotConfiguredError('Screenshot creation'),
+    }
+  }
+
+  const { payload, error: inputError } = normalizeScreenshotInput(input)
+
+  if (inputError) {
+    return {
+      screenshot: null,
+      error: inputError,
+    }
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('project_screenshots')
+      .insert(payload)
+      .select('*')
+      .single()
+
+    if (error) {
+      return {
+        screenshot: null,
+        error: getErrorMessage(error, 'Project screenshot could not be created.'),
+      }
+    }
+
+    return {
+      screenshot: data,
+      error: null,
+    }
+  } catch (error) {
+    return {
+      screenshot: null,
+      error: getErrorMessage(error, 'Project screenshot could not be created.'),
+    }
+  }
+}
+
+export async function updateProjectScreenshot(id, input) {
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      screenshot: null,
+      error: getAdminNotConfiguredError('Screenshot updating'),
+    }
+  }
+
+  const { screenshotId, error: idError } = validateScreenshotId(id)
+
+  if (idError) {
+    return {
+      screenshot: null,
+      error: idError,
+    }
+  }
+
+  const { payload, error: inputError } = normalizeScreenshotUpdateInput(input)
+
+  if (inputError) {
+    return {
+      screenshot: null,
+      error: inputError,
+    }
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('project_screenshots')
+      .update(payload)
+      .eq('id', screenshotId)
+      .select('*')
+      .maybeSingle()
+
+    if (error) {
+      return {
+        screenshot: null,
+        error: getErrorMessage(error, 'Project screenshot could not be updated.'),
+      }
+    }
+
+    if (!data) {
+      return {
+        screenshot: null,
+        error: 'Project screenshot was not found or could not be updated.',
+      }
+    }
+
+    return {
+      screenshot: data,
+      error: null,
+    }
+  } catch (error) {
+    return {
+      screenshot: null,
+      error: getErrorMessage(error, 'Project screenshot could not be updated.'),
+    }
+  }
+}
+
+export async function deleteProjectScreenshot(id) {
+  if (!isSupabaseConfigured || !supabase) {
+    return {
+      success: false,
+      error: getAdminNotConfiguredError('Screenshot deletion'),
+    }
+  }
+
+  const { screenshotId, error: idError } = validateScreenshotId(id)
+
+  if (idError) {
+    return {
+      success: false,
+      error: idError,
+    }
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('project_screenshots')
+      .delete()
+      .eq('id', screenshotId)
+      .select('id')
+      .maybeSingle()
+
+    if (error) {
+      return {
+        success: false,
+        error: getErrorMessage(error, 'Project screenshot could not be deleted.'),
+      }
+    }
+
+    if (!data) {
+      return {
+        success: false,
+        error: 'Project screenshot was not found or could not be deleted.',
+      }
+    }
+
+    return {
+      success: true,
+      error: null,
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: getErrorMessage(error, 'Project screenshot could not be deleted.'),
+    }
+  }
 }
