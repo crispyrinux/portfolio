@@ -1,8 +1,10 @@
+import { motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import ProjectCard from '../projects/ProjectCard'
 import EmptyState from '../common/EmptyState'
 import LoadingState from '../common/LoadingState'
 import SectionHeader from '../ui/SectionHeader'
+import { fadeUp, staggerContainer } from '../../lib/animations'
 import { getPublicProjects } from '../../services/projectService'
 
 export default function FeaturedProjects() {
@@ -41,7 +43,15 @@ export default function FeaturedProjects() {
   }, [])
 
   return (
-    <section id="featured-projects" className="scroll-mt-24 py-14 sm:py-16" aria-labelledby="featured-projects-title">
+    <motion.section
+      id="featured-projects"
+      className="scroll-mt-24 py-14 sm:py-16"
+      aria-labelledby="featured-projects-title"
+      variants={fadeUp}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, amount: 0.2 }}
+    >
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <SectionHeader
           eyebrow="Featured Projects"
@@ -61,11 +71,13 @@ export default function FeaturedProjects() {
       {isLoading ? (
         <LoadingState label="Loading featured projects..." className="mt-8" />
       ) : featuredProjects.length > 0 ? (
-        <div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+        <motion.div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3" variants={staggerContainer}>
           {featuredProjects.map((project) => (
-            <ProjectCard key={project.id || project.slug || project.title} project={project} />
+            <motion.div key={project.id || project.slug || project.title} variants={fadeUp}>
+              <ProjectCard project={project} />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       ) : (
         <EmptyState
           title="No featured projects yet"
@@ -73,6 +85,6 @@ export default function FeaturedProjects() {
           className="mt-8"
         />
       )}
-    </section>
+    </motion.section>
   )
 }

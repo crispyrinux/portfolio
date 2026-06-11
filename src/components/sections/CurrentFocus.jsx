@@ -1,3 +1,5 @@
+import { motion } from 'framer-motion'
+import { fadeUp, staggerContainer } from '../../lib/animations'
 import SectionHeader from '../ui/SectionHeader'
 
 const focusAreas = [
@@ -25,7 +27,15 @@ const focusAreas = [
 
 export default function CurrentFocus() {
   return (
-    <section id="focus" className="scroll-mt-24 py-14 sm:py-16" aria-labelledby="focus-title">
+    <motion.section
+      id="focus"
+      className="scroll-mt-24 py-14 sm:py-16"
+      aria-labelledby="focus-title"
+      variants={fadeUp}
+      initial="hidden"
+      whileInView="visible"
+      viewport={{ once: true, amount: 0.2 }}
+    >
       <SectionHeader
         eyebrow="Current Focus"
         titleId="focus-title"
@@ -33,14 +43,14 @@ export default function CurrentFocus() {
         description="Placeholder focus cards for the public homepage. These can later evolve into managed profile content."
       />
 
-      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <motion.div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" variants={staggerContainer}>
         {focusAreas.map((area) => (
-          <article key={area.title} className="border border-line bg-panel/75 p-6 shadow-panel">
+          <motion.article key={area.title} className="border border-line bg-panel/75 p-6 shadow-panel" variants={fadeUp}>
             <p className="text-sm font-semibold text-foreground">{area.title}</p>
             <p className="mt-3 text-sm leading-6 text-muted">{area.description}</p>
-          </article>
+          </motion.article>
         ))}
-      </div>
-    </section>
+      </motion.div>
+    </motion.section>
   )
 }
