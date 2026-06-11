@@ -3,7 +3,7 @@ import AdminLayout from '../components/admin/AdminLayout'
 import EmptyState from '../components/common/EmptyState'
 import ErrorState from '../components/common/ErrorState'
 import LoadingState from '../components/common/LoadingState'
-import { getArchivedProjects, restoreProject } from '../services/projectService'
+import { deleteProjectPermanently, getArchivedProjects, restoreProject } from '../services/projectService'
 
 function StatusBadge({ children }) {
   return (
@@ -28,6 +28,7 @@ export default function Archive() {
   const [actionError, setActionError] = useState(null)
   const [successMessage, setSuccessMessage] = useState(null)
   const [restoringProjectId, setRestoringProjectId] = useState(null)
+  const [deletingProjectId, setDeletingProjectId] = useState(null)
 
   async function loadArchivedProjects() {
     const result = await getArchivedProjects()
@@ -60,7 +61,7 @@ export default function Archive() {
   }, [])
 
   async function handleRestoreProject(project) {
-    if (!project?.id || restoringProjectId) {
+    if (!project?.id || restoringProjectId || deletingProjectId) {
       return
     }
 
@@ -87,6 +88,44 @@ export default function Archive() {
     await loadArchivedProjects()
     setSuccessMessage(`Restored "${project.title}".`)
     setRestoringProjectId(null)
+  }
+
+  async function handleDeleteProject(project) {
+    if (!project?.id || deletingProjectId || restoringProjectId) {
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Permanently delete "${project.title}"? This cannot be undone. The project row will be removed from Supabase.`,
+    )
+
+    if (!confirmed) {
+      return
+    }
+
+    const finalConfirmation = window.confirm(
+      'Final confirmation: permanent delete cannot be undone. Storage files are not cleaned up by this action.',
+    )
+
+    if (!finalConfirmation) {
+      return
+    }
+
+    setActionError(null)
+    setSuccessMessage(null)
+    setDeletingProjectId(project.id)
+
+    const result = await deleteProjectPermanently(project.id)
+
+    if (result.error) {
+      setActionError(result.error)
+      setDeletingProjectId(null)
+      return
+    }
+
+    await loadArchivedProjects()
+    setSuccessMessage(`Permanently deleted "${project.title}".`)
+    setDeletingProjectId(null)
   }
 
   return (
@@ -138,14 +177,25 @@ export default function Archive() {
                     </div>
                   </div>
 
-                  <button
-                    className="inline-flex w-fit justify-center border border-cyan-400/50 bg-cyan-400/10 px-4 py-2 text-sm font-medium text-cyan-100 transition-colors hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-60"
-                    disabled={restoringProjectId === project.id}
-                    onClick={() => handleRestoreProject(project)}
-                    type="button"
-                  >
-                    {restoringProjectId === project.id ? 'Restoring...' : 'Restore'}
-                  </button>
+                  <div className="flex flex-wrap gap-2 lg:justify-end">
+                    <button
+                      className="inline-flex w-fit justify-center border border-cyan-400/50 bg-cyan-400/10 px-4 py-2 text-sm font-medium text-cyan-100 transition-colors hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={restoringProjectId === project.id || deletingProjectId === project.id}
+                      onClick={() => handleRestoreProject(project)}
+                      type="button"
+                    >
+                      {restoringProjectId === project.id ? 'Restoring...' : 'Restore'}
+                    </button>
+
+                    <button
+                      className="inline-flex w-fit justify-center border border-rose-500/50 bg-rose-500/10 px-4 py-2 text-sm font-medium text-rose-100 transition-colors hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={deletingProjectId === project.id || restoringProjectId === project.id}
+                      onClick={() => handleDeleteProject(project)}
+                      type="button"
+                    >
+                      {deletingProjectId === project.id ? 'Deleting...' : 'Delete Permanently'}
+                    </button>
+                  </div>
                 </article>
               ))}
             </div>
