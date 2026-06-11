@@ -1,7 +1,10 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import AdminLayout from '../components/admin/AdminLayout'
-import { createProject } from '../services/projectService'
+import EmptyState from '../components/common/EmptyState'
+import ErrorState from '../components/common/ErrorState'
+import LoadingState from '../components/common/LoadingState'
+import { createProject, getAdminProjectById, updateProject } from '../services/projectService'
 
 const initialFormState = {
   title: '',
@@ -73,11 +76,95 @@ function TextArea({ id, label, value, onChange, rows = 4, placeholder }) {
   )
 }
 
-export default function ProjectForm({ mode }) {
+function stringifyArrayField(value) {
+  if (Array.isArray(value)) {
+    return value.join(', ')
+  }
+
+  return value ?? ''
+}
+
+function getStringValue(value) {
+  return value === null || value === undefined ? '' : String(value)
+}
+
+function mapProjectToFormState(project) {
+  return {
+    title: getStringValue(project.title),
+    slug: getStringValue(project.slug),
+    short_description: getStringValue(project.short_description),
+    overview: getStringValue(project.overview),
+    problem: getStringValue(project.problem),
+    solution: getStringValue(project.solution),
+    result: getStringValue(project.result),
+    features: stringifyArrayField(project.features),
+    tech_stack: stringifyArrayField(project.tech_stack),
+    category: getStringValue(project.category),
+    year: getStringValue(project.year),
+    github_url: getStringValue(project.github_url),
+    demo_video_url: getStringValue(project.demo_video_url),
+    documentation_url: getStringValue(project.documentation_url),
+    what_i_learned: getStringValue(project.what_i_learned),
+    is_featured: project.is_featured === true,
+    display_order: getStringValue(project.display_order),
+  }
+}
+
+export default function ProjectForm() {
   const navigate = useNavigate()
+  const { id } = useParams()
+  const isEditMode = Boolean(id)
   const [formData, setFormData] = useState(initialFormState)
+  const [isLoadingProject, setIsLoadingProject] = useState(isEditMode)
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState(null)
+  const [loadError, setLoadError] = useState(null)
+  const [notFound, setNotFound] = useState(false)
+
+  useEffect(() => {
+    if (!isEditMode) {
+      setFormData(initialFormState)
+      setIsLoadingProject(false)
+      setLoadError(null)
+      setNotFound(false)
+      return
+    }
+
+    let isMounted = true
+
+    async function loadProject() {
+      setIsLoadingProject(true)
+      setLoadError(null)
+      setNotFound(false)
+
+      const result = await getAdminProjectById(id)
+
+      if (!isMounted) {
+        return
+      }
+
+      if (result.error) {
+        setLoadError(result.error)
+        setIsLoadingProject(false)
+        return
+      }
+
+      if (!result.project) {
+        setNotFound(true)
+        setIsLoadingProject(false)
+        return
+      }
+
+      setFormData(mapProjectToFormState(result.project))
+      setIsLoadingProject(false)
+    }
+
+    loadProject()
+
+    return () => {
+      isMounted = false
+    }
+  }, [id, isEditMode])
 
   function handleChange(event) {
     const { checked, name, type, value } = event.target
@@ -93,7 +180,7 @@ export default function ProjectForm({ mode }) {
     setError(null)
     setIsSaving(true)
 
-    const result = await createProject(formData)
+    const result = isEditMode ? await updateProject(id, formData) : await createProject(formData)
 
     if (result.error) {
       setError(result.error)
@@ -104,31 +191,69 @@ export default function ProjectForm({ mode }) {
     navigate('/admin/dashboard')
   }
 
-  if (mode === 'edit') {
+  if (isLoadingProject) {
     return (
       <AdminLayout
         title="Edit Project"
-        description="Edit mode will be implemented in a later task."
+        description="Loading the selected CMS project."
       >
-        <section className="border border-slate-800 bg-slate-950/70 p-8">
-          <p className="text-sm leading-7 text-slate-400">
-            Project editing is not available yet. This page is protected and ready for the future edit form.
-          </p>
-          <Link
-            className="mt-6 inline-flex border border-slate-700 px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:border-cyan-400/50 hover:text-cyan-100"
-            to="/admin/dashboard"
-          >
-            Back to Dashboard
-          </Link>
-        </section>
+        <LoadingState label="Loading project..." />
+      </AdminLayout>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <AdminLayout
+        title="Edit Project"
+        description="The selected project could not be loaded."
+      >
+        <ErrorState
+          title="Project unavailable"
+          message={loadError}
+          action={
+            <Link
+              className="inline-flex border border-slate-700 px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:border-cyan-400/50 hover:text-cyan-100"
+              to="/admin/dashboard"
+            >
+              Back to Dashboard
+            </Link>
+          }
+        />
+      </AdminLayout>
+    )
+  }
+
+  if (notFound) {
+    return (
+      <AdminLayout
+        title="Edit Project"
+        description="The selected project does not exist."
+      >
+        <EmptyState
+          title="Project not found"
+          description="This CMS project could not be found in Supabase."
+          action={
+            <Link
+              className="inline-flex border border-slate-700 px-4 py-2 text-sm font-medium text-slate-300 transition-colors hover:border-cyan-400/50 hover:text-cyan-100"
+              to="/admin/dashboard"
+            >
+              Back to Dashboard
+            </Link>
+          }
+        />
       </AdminLayout>
     )
   }
 
   return (
     <AdminLayout
-      title="New Project"
-      description="Create a real Supabase CMS project. Only the title is required."
+      title={isEditMode ? 'Edit Project' : 'New Project'}
+      description={
+        isEditMode
+          ? 'Update an existing Supabase CMS project. Only the title is required.'
+          : 'Create a real Supabase CMS project. Only the title is required.'
+      }
     >
       <form className="space-y-6" onSubmit={handleSubmit}>
         {error ? (
@@ -260,7 +385,6 @@ export default function ProjectForm({ mode }) {
               label="GitHub URL"
               onChange={handleChange}
               placeholder="https://github.com/..."
-              type="url"
               value={formData.github_url}
             />
             <TextInput
@@ -268,7 +392,6 @@ export default function ProjectForm({ mode }) {
               label="Demo Video URL"
               onChange={handleChange}
               placeholder="https://..."
-              type="url"
               value={formData.demo_video_url}
             />
             <TextInput
@@ -276,7 +399,6 @@ export default function ProjectForm({ mode }) {
               label="Documentation URL"
               onChange={handleChange}
               placeholder="https://..."
-              type="url"
               value={formData.documentation_url}
             />
           </div>
@@ -320,7 +442,7 @@ export default function ProjectForm({ mode }) {
             disabled={isSaving}
             type="submit"
           >
-            {isSaving ? 'Saving...' : 'Save Project'}
+            {isSaving ? 'Saving...' : isEditMode ? 'Update Project' : 'Save Project'}
           </button>
         </div>
       </form>
