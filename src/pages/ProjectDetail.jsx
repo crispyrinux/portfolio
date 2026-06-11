@@ -125,11 +125,16 @@ function ProjectErrorState({ message }) {
   )
 }
 
+function getScreenshotImageUrl(screenshot) {
+  return screenshot?.image_url || screenshot?.url || ''
+}
+
 export default function ProjectDetail() {
   const { slug } = useParams()
   const [project, setProject] = useState(null)
   const [screenshots, setScreenshots] = useState([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingScreenshots, setIsLoadingScreenshots] = useState(false)
   const [error, setError] = useState(null)
 
   useEffect(() => {
@@ -139,6 +144,7 @@ export default function ProjectDetail() {
       setIsLoading(true)
       setError(null)
       setScreenshots([])
+      setIsLoadingScreenshots(false)
 
       try {
         const nextProject = await getProjectBySlug(slug)
@@ -148,24 +154,11 @@ export default function ProjectDetail() {
         }
 
         setProject(nextProject)
-
-        if (nextProject?.id) {
-          try {
-            const nextScreenshots = await getProjectScreenshots(nextProject.id)
-
-            if (isMounted) {
-              setScreenshots(Array.isArray(nextScreenshots) ? nextScreenshots : [])
-            }
-          } catch {
-            if (isMounted) {
-              setScreenshots([])
-            }
-          }
-        }
       } catch {
         if (isMounted) {
           setProject(null)
           setScreenshots([])
+          setIsLoadingScreenshots(false)
           setError('Project details could not be loaded right now.')
         }
       } finally {
@@ -181,6 +174,42 @@ export default function ProjectDetail() {
       isMounted = false
     }
   }, [slug])
+
+  useEffect(() => {
+    if (!project?.id) {
+      setScreenshots([])
+      setIsLoadingScreenshots(false)
+      return undefined
+    }
+
+    let isMounted = true
+
+    async function loadScreenshots() {
+      setIsLoadingScreenshots(true)
+
+      try {
+        const nextScreenshots = await getProjectScreenshots(project.id)
+
+        if (isMounted) {
+          setScreenshots(Array.isArray(nextScreenshots) ? nextScreenshots : [])
+        }
+      } catch {
+        if (isMounted) {
+          setScreenshots([])
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoadingScreenshots(false)
+        }
+      }
+    }
+
+    loadScreenshots()
+
+    return () => {
+      isMounted = false
+    }
+  }, [project?.id])
 
   if (isLoading) {
     return (
@@ -212,7 +241,7 @@ export default function ProjectDetail() {
   const techStack = normalizeArray(project.tech_stack)
   const detailEntries = detailBlocks.filter((block) => Boolean(project[block.key]))
   const linkEntries = linkBlocks.filter((block) => Boolean(project[block.key]))
-  const displayableScreenshots = screenshots.filter((screenshot) => screenshot?.url || screenshot?.image_url)
+  const displayableScreenshots = screenshots.filter((screenshot) => getScreenshotImageUrl(screenshot))
   const hasSnapshotContent = Boolean(project.category || project.year || techStack.length > 0)
   const hasDetailContent = Boolean(
     project.short_description ||
@@ -221,7 +250,8 @@ export default function ProjectDetail() {
       techStack.length > 0 ||
       project.what_i_learned ||
       linkEntries.length > 0 ||
-      displayableScreenshots.length > 0,
+      displayableScreenshots.length > 0 ||
+      isLoadingScreenshots,
   )
 
   return (
@@ -353,19 +383,41 @@ export default function ProjectDetail() {
           </section>
         ) : null}
 
+        {isLoadingScreenshots ? (
+          <div className="border border-line bg-panel/60 p-5 text-sm text-muted shadow-panel">
+            Loading project screenshots...
+          </div>
+        ) : null}
+
         {displayableScreenshots.length > 0 ? (
           <section className="border border-line bg-panel/75 p-6 shadow-panel sm:p-8">
             <p className="text-xs uppercase tracking-[0.22em] text-muted">Screenshots</p>
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              {displayableScreenshots.map((screenshot, index) => (
-                <img
-                  key={screenshot.id || screenshot.url || screenshot.image_url || index}
-                  alt={screenshot.alt || `${project.title} screenshot`}
-                  className="aspect-video w-full border border-line bg-ink object-cover"
-                  loading="lazy"
-                  src={screenshot.url || screenshot.image_url}
-                />
-              ))}
+              {displayableScreenshots.map((screenshot, index) => {
+                const imageUrl = getScreenshotImageUrl(screenshot)
+
+                return (
+                  <figure
+                    key={screenshot.id || imageUrl || index}
+                    className="overflow-hidden border border-line bg-ink"
+                  >
+                    <img
+                      alt={screenshot.alt || `${project.title} screenshot ${index + 1}`}
+                      className="aspect-video w-full bg-ink object-cover"
+                      loading="lazy"
+                      onError={(event) => {
+                        event.currentTarget.hidden = true
+                      }}
+                      src={imageUrl}
+                    />
+                    {screenshot.caption ? (
+                      <figcaption className="border-t border-line px-4 py-3 text-sm leading-6 text-muted">
+                        {screenshot.caption}
+                      </figcaption>
+                    ) : null}
+                  </figure>
+                )
+              })}
             </div>
           </section>
         ) : null}
