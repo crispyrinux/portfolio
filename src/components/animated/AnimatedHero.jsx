@@ -579,24 +579,34 @@ export default function AnimatedHero() {
 
     if (firstChapter) {
       const titleChars = firstChapter.querySelectorAll('.title-char')
-      tl.from(titleChars, {
-        y: 200,
-        opacity: 0,
-        duration: 1.5,
-        stagger: 0.05,
-        ease: 'power4.out',
-      }, '-=0.5')
+      tl.fromTo(titleChars, 
+        { y: 200, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 1.5,
+          stagger: 0.05,
+          ease: 'power4.out',
+          clearProps: 'transform,opacity',
+        }, 
+        '-=0.5'
+      )
     }
 
     if (firstChapter) {
       const subtitleLines = firstChapter.querySelectorAll('.subtitle-line')
-      tl.from(subtitleLines, {
-        y: 50,
-        opacity: 0,
-        duration: 1,
-        stagger: 0.2,
-        ease: 'power3.out',
-      }, '-=0.8')
+      tl.fromTo(subtitleLines,
+        { y: 50, opacity: 0 },
+        {
+          y: 0,
+          opacity: 1,
+          duration: 1,
+          stagger: 0.2,
+          ease: 'power3.out',
+          clearProps: 'transform,opacity',
+        },
+        '-=0.8'
+      )
     }
 
     if (scrollProgressRef.current && currentSection === 0) {
@@ -657,7 +667,7 @@ export default function AnimatedHero() {
             <span />
             <span />
           </div>
-          <div className="vertical-text">HMY</div>
+          <div className="vertical-text"></div>
         </div>
 
         <div className="scroll-sections hero-content cosmos-content">
@@ -668,13 +678,13 @@ export default function AnimatedHero() {
             }}
             className="content-section slide-who-am-i text-left items-start justify-center pointer-events-none"
           >
-            <div className="w-full max-w-6xl px-6 sm:px-12 md:px-20 lg:px-28 flex justify-start items-center md:items-start pointer-events-auto">
+            <div className="w-full max-w-6xl px-6 sm:px-12 md:px-20 lg:px-28 flex justify-start items-center md:items-start pointer-events-auto ">
               <div className="max-w-2xl text-center md:text-left flex flex-col items-center md:items-start gap-3 sm:gap-4 select-text">
                 <span className="text-red-500 font-mono font-semibold tracking-[0.25em] text-xs sm:text-sm uppercase subtitle-line">
                   HELLO, I'M
                 </span>
                 
-                <h1 className="hero-title-custom text-3xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight uppercase leading-none -mt-2 sm:-mt-3 md:-mt-4 mb-2 sm:mb-3 md:mb-4">
+                <h1 className="hero-title-custom text-3xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight uppercase leading-none relative -top-2 md:-top-4">
                   {splitTitle("Hammam")}
                   <br className="block md:hidden" />
                   <span className="hidden md:inline">&nbsp;</span>
