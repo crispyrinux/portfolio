@@ -248,3 +248,18 @@
     justify-items: start;
   }
 }
+
+.hero-title-custom {
+  margin: 0;
+  color: #ffffff;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.05);
+  pointer-events: auto;
+  transition: color 320ms ease;
+}
+
+.hero-title-custom:hover {
+  color: #f8fafc;
+}

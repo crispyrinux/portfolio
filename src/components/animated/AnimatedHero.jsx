@@ -635,10 +635,14 @@ export default function AnimatedHero() {
   }, [totalSections])
 
   const splitTitle = (text) => {
-    return text.split('').map((char, i) => (
-      <span key={i} className="title-char">
-        {char}
-      </span>
+    return text.split(' ').map((word, wordIdx, wordsArr) => (
+      <span key={wordIdx} className="inline-block whitespace-nowrap">
+        {word.split('').map((char, i) => (
+          <span key={i} className="title-char inline-block">
+            {char}
+          </span>
+        ))}
+        {wordIdx !== wordsArr.length - 1 && <span className="inline-block">&nbsp;</span>}      </span>
     ))
   }
 
@@ -657,22 +661,183 @@ export default function AnimatedHero() {
         </div>
 
         <div className="scroll-sections hero-content cosmos-content">
-          {chapters.map((chapter, index) => (
-            <section
-              key={chapter.title}
-              ref={(node) => {
-                chapterRefs.current[index] = node
-              }}
-              className="content-section"
-            >
-              <h1 className="hero-title">{splitTitle(chapter.title)}</h1>
-
-              <div className="hero-subtitle cosmos-subtitle">
-                <p className="subtitle-line">{chapter.line1}</p>
-                <p className="subtitle-line">{chapter.line2}</p>
+          {/* Slide 1: Who Am I? */}
+          <section
+            ref={(node) => {
+              chapterRefs.current[0] = node
+            }}
+            className="content-section slide-who-am-i text-left items-start justify-center pointer-events-none"
+          >
+            <div className="w-full max-w-6xl px-6 sm:px-12 md:px-20 lg:px-28 flex justify-start items-center md:items-start pointer-events-auto">
+              <div className="max-w-2xl text-center md:text-left flex flex-col items-center md:items-start gap-3 sm:gap-4 select-text">
+                <span className="text-red-500 font-mono font-semibold tracking-[0.25em] text-xs sm:text-sm uppercase subtitle-line">
+                  HELLO, I'M
+                </span>
+                
+                <h1 className="hero-title-custom text-3xl sm:text-5xl md:text-6xl font-extrabold text-white tracking-tight uppercase leading-none -mt-2 sm:-mt-3 md:-mt-4 mb-2 sm:mb-3 md:mb-4">
+                  {splitTitle("Hammam")}
+                  <br className="block md:hidden" />
+                  <span className="hidden md:inline">&nbsp;</span>
+                  {splitTitle("Muhammad Yazid")}
+                </h1>
+                
+                <div className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-red-500 via-rose-500 to-indigo-400 bg-clip-text text-transparent subtitle-line">
+                  Backend Developer
+                </div>
+                
+                <p className="text-sm sm:text-base md:text-lg text-slate-300 font-medium leading-relaxed max-w-lg subtitle-line">
+                  Focused on API Engineering, Database Design, and Software Architecture.
+                </p>
+                
+                <div className="text-xs sm:text-sm text-slate-400 font-normal flex flex-wrap items-center justify-center md:justify-start gap-1.5 sm:gap-2 subtitle-line">
+                  <span>Computer Science Student at</span>
+                  <span className="text-indigo-400 font-semibold">Universitas Gadjah Mada</span>
+                </div>
+                
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-4 subtitle-line">
+                  <a
+                    href="#projects"
+                    className="px-5 py-2.5 rounded text-xs sm:text-sm font-medium bg-white text-black hover:bg-slate-200 transition-colors"
+                  >
+                    View Projects
+                  </a>
+                  <a
+                    href="https://github.com/crispyrinux"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded text-xs sm:text-sm font-medium border border-white/20 text-white hover:bg-white/5 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/>
+                    </svg>
+                    <span>GitHub</span>
+                  </a>
+                  <a
+                    href="https://www.linkedin.com/in/hammam-muhammad-yazid-14407b323"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-5 py-2.5 rounded text-xs sm:text-sm font-medium border border-white/20 text-white hover:bg-white/5 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/>
+                    </svg>
+                    <span>LinkedIn</span>
+                  </a>
+                </div>
               </div>
-            </section>
-          ))}
+            </div>
+          </section>
+
+          {/* Slide 2: What I Do */}
+          <section
+            ref={(node) => {
+              chapterRefs.current[1] = node
+            }}
+            className="content-section slide-what-i-do flex flex-col justify-center items-center px-6 w-full h-full pointer-events-none"
+          >
+            <div className="w-full max-w-4xl flex flex-col items-center gap-6 md:gap-8 select-text pointer-events-auto">
+              <div className="text-center flex flex-col gap-1.5 md:gap-2">
+                <span className="text-red-500 font-mono font-semibold tracking-[0.25em] text-xs sm:text-sm uppercase">
+                  EXPERTISE
+                </span>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight uppercase">
+                  What I Do
+                </h2>
+              </div>
+              
+              <div className="flex flex-col items-start gap-6 md:gap-8 max-w-xl w-full border-l border-white/10 pl-6 sm:pl-8 py-2">
+                <div className="flex flex-col gap-1 text-left">
+                  <span className="text-xs font-mono text-red-500 tracking-wider font-semibold">
+                    01 / API ENGINEERING
+                  </span>
+                  <h3 className="text-base sm:text-lg font-bold text-white tracking-wide">
+                    Designing scalable backend services and REST APIs.
+                  </h3>
+                </div>
+
+                <div className="flex flex-col gap-1 text-left">
+                  <span className="text-xs font-mono text-red-500 tracking-wider font-semibold">
+                    02 / DATABASE DESIGN
+                  </span>
+                  <h3 className="text-base sm:text-lg font-bold text-white tracking-wide">
+                    Building efficient schemas, relationships, and query systems.
+                  </h3>
+                </div>
+
+                <div className="flex flex-col gap-1 text-left">
+                  <span className="text-xs font-mono text-red-500 tracking-wider font-semibold">
+                    03 / SOFTWARE ARCHITECTURE
+                  </span>
+                  <h3 className="text-base sm:text-lg font-bold text-white tracking-wide">
+                    Creating maintainable and scalable backend systems.
+                  </h3>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* Slide 3: Technologies */}
+          <section
+            ref={(node) => {
+              chapterRefs.current[2] = node
+            }}
+            className="content-section slide-technologies flex flex-col justify-center items-center px-6 w-full h-full pointer-events-none"
+          >
+            <div className="w-full max-w-4xl flex flex-col items-center gap-6 md:gap-8 select-text pointer-events-auto">
+              <div className="text-center flex flex-col gap-1.5 md:gap-2">
+                <span className="text-indigo-400 font-mono font-semibold tracking-[0.25em] text-xs sm:text-sm uppercase">
+                  TOOLKIT
+                </span>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-white tracking-tight uppercase">
+                  Technologies I Work With
+                </h2>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-8 sm:gap-12 md:gap-16 w-full max-w-3xl text-left mt-2">
+                <div className="flex flex-col gap-3">
+                  <h3 className="text-xs font-mono uppercase tracking-widest text-indigo-400 border-b border-white/10 pb-2 font-bold">
+                    [ Backend ]
+                  </h3>
+                  <ul className="space-y-2 text-sm text-slate-300">
+                    {['Laravel', 'NestJS', 'Express.js', 'Node.js', 'PHP'].map((tech) => (
+                      <li key={tech} className="flex items-center gap-2 font-medium">
+                        <span className="w-1 h-1 bg-red-500 rounded-full" />
+                        <span>{tech}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <h3 className="text-xs font-mono uppercase tracking-widest text-indigo-400 border-b border-white/10 pb-2 font-bold">
+                    [ Database ]
+                  </h3>
+                  <ul className="space-y-2 text-sm text-slate-300">
+                    {['PostgreSQL', 'MySQL', 'Redis'].map((tech) => (
+                      <li key={tech} className="flex items-center gap-2 font-medium">
+                        <span className="w-1 h-1 bg-indigo-500 rounded-full" />
+                        <span>{tech}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <h3 className="text-xs font-mono uppercase tracking-widest text-indigo-400 border-b border-white/10 pb-2 font-bold">
+                    [ Tools ]
+                  </h3>
+                  <ul className="space-y-2 text-sm text-slate-300">
+                    {['Docker', 'Git', 'Linux'].map((tech) => (
+                      <li key={tech} className="flex items-center gap-2 font-medium">
+                        <span className="w-1 h-1 bg-teal-500 rounded-full" />
+                        <span>{tech}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </section>
         </div>
 
         <div ref={scrollProgressRef} className="scroll-progress" style={{ visibility: 'hidden' }}>
