@@ -4,14 +4,14 @@ import SectionHeader from '../ui/SectionHeader'
 
 const experienceItems = [
   {
-    period: 'Future Entry',
-    title: 'Backend Project Experience',
-    description: 'Placeholder for academic, prototype, infrastructure, or deployment work.',
+    period: 'Academic Projects',
+    title: 'Backend Development Lab',
+    description: 'Developing RESTful APIs, modeling databases, and implementing authentication flows as part of academic projects and self-directed learning.',
   },
   {
-    period: 'Future Entry',
-    title: 'Software Engineering Practice',
-    description: 'Placeholder for coursework, labs, collaborative work, or technical exercises.',
+    period: 'Self-Directed Study',
+    title: 'Software Engineering & Systems Study',
+    description: 'Applying clean architecture principles, learning backend frameworks, and practicing database integration using PostgreSQL and Node.js.',
   },
 ]
 
@@ -28,8 +28,8 @@ export default function Experience() {
       <SectionHeader
         eyebrow="Experience"
         titleId="experience-title"
-        title="Experience timeline placeholder"
-        description="Static cards are used for now so real experience can be added later without changing the section shape."
+        title="Practical Engineering Journey"
+        description="A summary of hands-on technical exploration, academic projects, and self-directed backend study."
       />
 
       <motion.div className="mt-8 space-y-4" variants={staggerContainer}>

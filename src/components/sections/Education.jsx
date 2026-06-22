@@ -16,19 +16,19 @@ export default function Education() {
         <SectionHeader
           eyebrow="Education"
           titleId="education-title"
-          title="Education card placeholder"
-          description="A simple structure for future academic background details."
+          title="Academic Background"
+          description="Universitas Gadjah Mada educational pathway and focus areas."
         />
 
         <motion.article className="border border-line bg-panel/75 p-6 shadow-panel sm:p-8" variants={fadeUp}>
           <p className="text-xs uppercase tracking-[0.22em] text-muted">Academic Profile</p>
-          <h3 className="mt-4 text-2xl font-semibold text-foreground">Computer Science Education Placeholder</h3>
+          <h3 className="mt-4 text-2xl font-semibold text-foreground">Computer Science at Universitas Gadjah Mada</h3>
           <p className="mt-4 text-sm leading-7 text-muted">
-            Placeholder education content for a future degree, coursework, academic projects, and technical
-            learning context.
+            Studying core computer science concepts while focusing on backend development, software engineering,
+            databases, and system architecture through academic learning and personal projects.
           </p>
           <motion.div className="mt-6 grid gap-3 sm:grid-cols-2" variants={staggerContainer}>
-            {['Backend Coursework', 'Software Engineering Labs'].map((item) => (
+            {['Database Systems', 'Software Engineering', 'Algorithms & Data Structures', 'Computer Networks'].map((item) => (
               <motion.div key={item} className="border border-line bg-ink/70 p-4 text-sm text-muted" variants={fadeUp}>
                 {item}
               </motion.div>

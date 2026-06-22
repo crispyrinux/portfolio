@@ -3,10 +3,22 @@ import { fadeUp, staggerContainer } from '../../lib/animations'
 import SectionHeader from '../ui/SectionHeader'
 
 const directionSteps = [
-  'Understand the problem surface',
-  'Design the data and service boundaries',
-  'Build simple, testable backend flows',
-  'Prepare for deployment and iteration',
+  {
+    title: 'Understand the problem surface',
+    description: 'Analyzing system requirements, data boundaries, and API requirements.',
+  },
+  {
+    title: 'Design the data and service boundaries',
+    description: 'Designing normalized schemas, database relations, and service layers.',
+  },
+  {
+    title: 'Build simple, testable backend flows',
+    description: 'Writing clean server logic, handling errors, and implementing unit tests.',
+  },
+  {
+    title: 'Prepare for deployment and iteration',
+    description: 'Setting up container environments, pipeline actions, and deploy scripts.',
+  },
 ]
 
 export default function EngineeringDirection() {
@@ -24,20 +36,20 @@ export default function EngineeringDirection() {
           <SectionHeader
             eyebrow="Engineering Direction"
             titleId="direction-title"
-            title="A lab-style path for backend growth"
-            description="This placeholder narrative frames the portfolio as a technical lab for backend systems, scalable products, and practical software engineering habits."
+            title="A structured workflow for backend development"
+            description="My step-by-step approach to analyzing problems, designing systems, and building maintainable backend applications."
           />
 
           <motion.div className="space-y-4" variants={staggerContainer}>
             {directionSteps.map((step, index) => (
-              <motion.div key={step} className="grid grid-cols-[auto_1fr] gap-4 border border-line bg-ink/70 p-4" variants={fadeUp}>
+              <motion.div key={step.title} className="grid grid-cols-[auto_1fr] gap-4 border border-line bg-ink/70 p-4" variants={fadeUp}>
                 <span className="flex h-9 w-9 items-center justify-center border border-accent/50 bg-accent-soft text-sm text-foreground">
                   {String(index + 1).padStart(2, '0')}
                 </span>
                 <div>
-                  <p className="text-sm font-medium text-foreground">{step}</p>
+                  <p className="text-sm font-medium text-foreground">{step.title}</p>
                   <p className="mt-2 text-sm leading-6 text-muted">
-                    Placeholder detail for a future technical direction entry.
+                    {step.description}
                   </p>
                 </div>
               </motion.div>

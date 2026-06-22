@@ -5,23 +5,23 @@ import SectionHeader from '../ui/SectionHeader'
 const focusAreas = [
   {
     title: 'Backend Development',
-    description: 'Building a stronger foundation in APIs, data flow, and server-side application structure.',
+    description: 'Building scalable backend services using modern frameworks, clean architecture principles, and structured development workflows.',
+  },
+  {
+    title: 'Database Engineering',
+    description: 'Designing efficient schemas, maintaining data consistency, and improving how applications interact with data.',
+  },
+  {
+    title: 'System Architecture',
+    description: 'Learning how software systems are structured to achieve reliability, scalability, and long-term maintainability.',
+  },
+  {
+    title: 'Cloud Fundamentals',
+    description: 'Exploring deployment workflows, infrastructure concepts, and cloud-based application development.',
   },
   {
     title: 'Software Engineering',
-    description: 'Practicing maintainable code, modular design, and clear technical decision-making.',
-  },
-  {
-    title: 'Blockchain Interest',
-    description: 'Exploring distributed systems concepts and the engineering behind blockchain products.',
-  },
-  {
-    title: 'Cloud Computing Path',
-    description: 'Learning deployment fundamentals, infrastructure concepts, and scalable service thinking.',
-  },
-  {
-    title: 'Cybersecurity Interest',
-    description: 'Studying security basics, authentication boundaries, and responsible application design.',
+    description: 'Applying clean code principles, version control practices, and collaborative development workflows.',
   },
 ]
 
@@ -40,7 +40,7 @@ export default function CurrentFocus() {
         eyebrow="Current Focus"
         titleId="focus-title"
         title="Technical areas under active exploration"
-        description="Placeholder focus cards for the public homepage. These can later evolve into managed profile content."
+        description="A snapshot of backend engineering topics I am currently studying and practicing."
       />
 
       <motion.div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" variants={staggerContainer}>

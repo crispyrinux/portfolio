@@ -3,9 +3,9 @@ import { fadeUp, staggerContainer } from '../../lib/animations'
 import SectionHeader from '../ui/SectionHeader'
 
 const contactLinks = [
-  { label: 'Email Placeholder', href: 'mailto:hello@example.com' },
-  { label: 'GitHub Placeholder', href: '#contact' },
-  { label: 'LinkedIn Placeholder', href: '#contact' },
+  { label: 'Gmail', href: 'mailto:hammammuhammady@gmail.com' },
+  { label: 'GitHub Profile', href: 'https://github.com/crispyrinux' },
+  { label: 'LinkedIn Profile', href: 'https://www.linkedin.com/in/hammam-muhammad-yazid-14407b323' },
 ]
 
 export default function Contact() {
@@ -24,8 +24,8 @@ export default function Contact() {
           <SectionHeader
             eyebrow="Contact"
             titleId="contact-title"
-            title="Open for future public contact details"
-            description="Placeholder contact area for safe public links and professional ways to connect."
+            title="Let's Connect"
+            description="Feel free to reach out for collaboration, technical discussions, backend engineering opportunities, or software development projects."
           />
 
           <motion.div className="grid gap-3" variants={staggerContainer}>

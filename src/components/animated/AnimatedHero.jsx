@@ -11,19 +11,19 @@ gsap.registerPlugin(ScrollTrigger)
 
 const chapters = [
   {
+    title: 'DEVELOPER',
+    line1: 'Backend Developer Focused on API Engineering,',
+    line2: 'Database Design, and Software Architecture.',
+  },
+  {
+    title: 'SYSTEMS',
+    line1: 'Building scalable backend systems through well-designed APIs,',
+    line2: 'structured databases, and maintainable software architecture.',
+  },
+  {
     title: 'PORTFOLIO',
-    line1: 'A digital space for backend systems,',
-    line2: 'software engineering, and technical exploration.',
-  },
-  {
-    title: 'EXPERIENCE',
-    line1: 'Where ideas become systems,',
-    line2: 'and experiments become documented products.',
-  },
-  {
-    title: 'PROJECTS',
-    line1: 'Selected builds, academic work,',
-    line2: 'cloud experiments, and case studies.',
+    line1: 'Hammam Muhammad Yazid — Computer Science Student',
+    line2: 'at Universitas Gadjah Mada.',
   },
 ]
 
@@ -618,7 +618,7 @@ export default function AnimatedHero() {
             <span />
             <span />
           </div>
-          <div className="vertical-text">SPACE</div>
+          <div className="vertical-text">HMY</div>
         </div>
 
         <div className="scroll-sections hero-content cosmos-content">
