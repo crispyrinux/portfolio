@@ -27,6 +27,25 @@ const chapters = [
   },
 ]
 
+const getOptimalPixelRatio = () => {
+  if (typeof window === 'undefined') return 1
+  const dpr = window.devicePixelRatio || 1
+  const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)
+  const cores = navigator.hardwareConcurrency || 4
+  const isLowEnd = cores <= 4 || isMobile
+
+  if (isMobile) return 1.0
+  if (isLowEnd) return 1.0
+  return Math.min(dpr, 1.5)
+}
+
+const checkPostProcessingSupport = () => {
+  if (typeof window === 'undefined') return false
+  const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)
+  const cores = navigator.hardwareConcurrency || 4
+  return !isMobile && cores > 4
+}
+
 export default function AnimatedHero() {
   const containerRef = useRef(null)
   const stageRef = useRef(null)
@@ -82,17 +101,21 @@ export default function AnimatedHero() {
         powerPreference: 'high-performance',
       })
       refs.renderer.setSize(width, height)
-      refs.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.25))
+      refs.renderer.setPixelRatio(getOptimalPixelRatio())
       refs.renderer.setClearColor(0x000000, 1)
       refs.renderer.toneMapping = THREE.ACESFilmicToneMapping
       refs.renderer.toneMappingExposure = 0.5
 
-      refs.composer = new EffectComposer(refs.renderer)
-      const renderPass = new RenderPass(refs.scene, refs.camera)
-      refs.composer.addPass(renderPass)
+      if (checkPostProcessingSupport()) {
+        refs.composer = new EffectComposer(refs.renderer)
+        const renderPass = new RenderPass(refs.scene, refs.camera)
+        refs.composer.addPass(renderPass)
 
-      const bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height), 0.8, 0.4, 0.85)
-      refs.composer.addPass(bloomPass)
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height), 0.8, 0.4, 0.85)
+        refs.composer.addPass(bloomPass)
+      } else {
+        refs.composer = null
+      }
 
       createStarField()
       createNebula()
@@ -175,8 +198,9 @@ export default function AnimatedHero() {
               float dist = length(gl_PointCoord - vec2(0.5));
               if (dist > 0.5) discard;
 
-              float opacity = 1.0 - smoothstep(0.0, 0.5, dist);
-              gl_FragColor = vec4(vColor, opacity);
+              // Soft exponential glow decay for a more stellar atmospheric corona
+              float glow = exp(-dist * 6.0);
+              gl_FragColor = vec4(vColor, glow);
             }
           `,
           transparent: true,
@@ -237,7 +261,7 @@ export default function AnimatedHero() {
         `,
         transparent: true,
         blending: THREE.AdditiveBlending,
-        side: THREE.DoubleSide,
+        side: THREE.FrontSide,
         depthWrite: false,
       })
 
@@ -318,13 +342,14 @@ export default function AnimatedHero() {
           uniform float time;
 
           void main() {
-            float intensity = pow(0.7 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 2.0);
-            vec3 atmosphere = vec3(0.3, 0.6, 1.0) * intensity;
+            // Enhanced rim-glow by lowering power to 1.5 and boosting multiplier to 1.2 (reduced by 20% from 1.5)
+            float intensity = pow(0.85 - dot(vNormal, vec3(0.0, 0.0, 1.0)), 1.5);
+            vec3 atmosphere = vec3(0.3, 0.6, 1.0) * intensity * 1.2;
 
-            float pulse = sin(time * 2.0) * 0.1 + 0.9;
+            float pulse = sin(time * 2.0) * 0.08 + 0.92;
             atmosphere *= pulse;
 
-            gl_FragColor = vec4(atmosphere, intensity * 0.25);
+            gl_FragColor = vec4(atmosphere, intensity * 0.24);
           }
         `,
         side: THREE.BackSide,
@@ -408,8 +433,14 @@ export default function AnimatedHero() {
       const time = Date.now() * 0.001
       const scrollSmoothing = 0.072
 
-      smoothScrollProgress.current += (targetScrollProgress.current - smoothScrollProgress.current) * scrollSmoothing
-      applyScrollProgress(smoothScrollProgress.current)
+      const diff = targetScrollProgress.current - smoothScrollProgress.current
+      if (Math.abs(diff) > 0.0001) {
+        smoothScrollProgress.current += diff * scrollSmoothing
+        applyScrollProgress(smoothScrollProgress.current)
+      } else if (smoothScrollProgress.current !== targetScrollProgress.current) {
+        smoothScrollProgress.current = targetScrollProgress.current
+        applyScrollProgress(smoothScrollProgress.current)
+      }
 
       refs.stars.forEach((starField) => {
         if (starField.material.uniforms) {
@@ -445,6 +476,8 @@ export default function AnimatedHero() {
 
       if (refs.composer) {
         refs.composer.render()
+      } else if (refs.renderer && refs.scene && refs.camera) {
+        refs.renderer.render(refs.scene, refs.camera)
       }
     }
 
@@ -456,11 +489,13 @@ export default function AnimatedHero() {
       const width = stage?.clientWidth || window.innerWidth
       const height = stage?.clientHeight || window.innerHeight
 
-      if (refs.camera && refs.renderer && refs.composer) {
+      if (refs.camera && refs.renderer) {
         refs.camera.aspect = width / height
         refs.camera.updateProjectionMatrix()
         refs.renderer.setSize(width, height)
-        refs.composer.setSize(width, height)
+        if (refs.composer) {
+          refs.composer.setSize(width, height)
+        }
       }
     }
 
