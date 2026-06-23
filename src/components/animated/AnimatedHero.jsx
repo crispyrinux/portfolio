@@ -60,6 +60,13 @@ export default function AnimatedHero() {
   const smoothScrollProgress = useRef(0)
   const activeSectionRef = useRef(0)
 
+  // Optimization Refs
+  const isVisibleRef = useRef(true)
+  const heroHeightRef = useRef(0)
+  const heroTopRef = useRef(0)
+  const windowHeightRef = useRef(window.innerHeight)
+  const animateRef = useRef(null)
+
   const [currentSection, setCurrentSection] = useState(0)
   const [isReady, setIsReady] = useState(false)
   const totalSections = chapters.length
@@ -69,6 +76,7 @@ export default function AnimatedHero() {
     camera: null,
     renderer: null,
     composer: null,
+    bloomPass: null,
     stars: [],
     nebula: null,
     mountains: [],
@@ -111,10 +119,13 @@ export default function AnimatedHero() {
         const renderPass = new RenderPass(refs.scene, refs.camera)
         refs.composer.addPass(renderPass)
 
-        const bloomPass = new UnrealBloomPass(new THREE.Vector2(width, height), 0.8, 0.4, 0.85)
+        // Optimasi: Gunakan setengah resolusi untuk bloom pass buffer (width/2, height/2)
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(width / 2, height / 2), 0.8, 0.4, 0.85)
         refs.composer.addPass(bloomPass)
+        refs.bloomPass = bloomPass
       } else {
         refs.composer = null
+        refs.bloomPass = null
       }
 
       createStarField()
@@ -128,7 +139,12 @@ export default function AnimatedHero() {
 
     const createStarField = () => {
       const { current: refs } = threeRefs
-      const starCount = 5000
+      
+      // Adaptif Particle Count: Kurangi bintang pada device mobile/low-end
+      const isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)
+      const cores = navigator.hardwareConcurrency || 4
+      const isLowEnd = cores <= 4 || isMobile
+      const starCount = isMobile ? 1500 : (isLowEnd ? 2500 : 5000)
 
       for (let i = 0; i < 3; i += 1) {
         const geometry = new THREE.BufferGeometry()
@@ -427,6 +443,12 @@ export default function AnimatedHero() {
     }
 
     const animate = () => {
+      // Pause Three.js render loop jika out of viewport
+      if (!isVisibleRef.current) {
+        threeRefs.current.animationId = null
+        return
+      }
+
       const { current: refs } = threeRefs
       refs.animationId = requestAnimationFrame(animate)
 
@@ -481,6 +503,8 @@ export default function AnimatedHero() {
       }
     }
 
+    animateRef.current = animate
+
     initThree()
 
     const handleResize = () => {
@@ -489,17 +513,30 @@ export default function AnimatedHero() {
       const width = stage?.clientWidth || window.innerWidth
       const height = stage?.clientHeight || window.innerHeight
 
+      // Cache window height dan dimensi Hero container untuk melenyapkan layout thrashing saat scroll
+      windowHeightRef.current = window.innerHeight
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect()
+        heroTopRef.current = rect.top + window.scrollY
+        heroHeightRef.current = rect.height
+      }
+
       if (refs.camera && refs.renderer) {
         refs.camera.aspect = width / height
         refs.camera.updateProjectionMatrix()
         refs.renderer.setSize(width, height)
         if (refs.composer) {
           refs.composer.setSize(width, height)
+          // Optimasi Bloom Pass: Batasi buffer blur pada setengah resolusi
+          if (refs.bloomPass) {
+            refs.bloomPass.setSize(width / 2, height / 2)
+          }
         }
       }
     }
 
     window.addEventListener('resize', handleResize)
+    handleResize() // Panggil sekali untuk inisialisasi awal koordinat
 
     return () => {
       const { current: refs } = threeRefs
@@ -624,24 +661,50 @@ export default function AnimatedHero() {
   }, [isReady])
 
   useEffect(() => {
+    // Scroll handler yang bebas dari Layout Reads (layout thrashing) menggunakan cached values
     const handleScroll = () => {
-      const container = containerRef.current
-
-      if (!container) {
-        return
+      if (heroHeightRef.current === 0) {
+        const container = containerRef.current
+        if (!container) return
+        const rect = container.getBoundingClientRect()
+        heroTopRef.current = rect.top + window.scrollY
+        heroHeightRef.current = rect.height
       }
-
-      const rect = container.getBoundingClientRect()
-      const scrollableDistance = Math.max(rect.height - window.innerHeight, 1)
-      const progress = Math.min(Math.max(-rect.top / scrollableDistance, 0), 1)
+      
+      const scrollableDistance = Math.max(heroHeightRef.current - windowHeightRef.current, 1)
+      const progress = Math.min(Math.max((window.scrollY - heroTopRef.current) / scrollableDistance, 0), 1)
 
       targetScrollProgress.current = progress
     }
 
-    window.addEventListener('scroll', handleScroll)
+    // Gunakan passive scroll listener untuk rendering thread terpisah yang lebih cepat
+    window.addEventListener('scroll', handleScroll, { passive: true })
     handleScroll()
 
-    return () => window.removeEventListener('scroll', handleScroll)
+    // Intersection Observer untuk pause/resume render loop Three.js secara otomatis
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        const wasVisible = isVisibleRef.current
+        isVisibleRef.current = entry.isIntersecting
+
+        // Jika kembali terlihat, jalankan kembali loop animasi requestAnimationFrame
+        if (entry.isIntersecting && !wasVisible && animateRef.current) {
+          animateRef.current()
+        }
+      },
+      { threshold: 0.001 } // Trigger jika bahkan minimal 0.1% bagian Hero terlihat
+    )
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current)
+    }
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+      if (containerRef.current) {
+        observer.unobserve(containerRef.current)
+      }
+    }
   }, [totalSections])
 
   const splitTitle = (text) => {
@@ -809,7 +872,7 @@ export default function AnimatedHero() {
                     [ Backend ]
                   </h3>
                   <ul className="space-y-2 text-sm text-slate-300">
-                    {['Laravel', 'NestJS', 'Express.js', 'Node.js', 'PHP'].map((tech) => (
+                    {['NestJS', 'Express.js', 'Node.js', 'PHP'].map((tech) => (
                       <li key={tech} className="flex items-center gap-2 font-medium">
                         <span className="w-1 h-1 bg-red-500 rounded-full" />
                         <span>{tech}</span>

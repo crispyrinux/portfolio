@@ -32,7 +32,7 @@ export default function Navbar({ className }) {
         className,
       )}
     >
-      <div className="flex items-center gap-3 bg-panel/85 border border-line backdrop-blur-lg py-1.5 px-2 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+      <div className="flex items-center gap-3 bg-panel/95 border border-line py-1.5 px-2 rounded-full shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = activeTab === item.name
