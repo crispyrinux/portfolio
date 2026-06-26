@@ -21,8 +21,13 @@ body,
 body {
   margin: 0;
   min-width: 320px;
-  background:
+  background-color: #05070b;
+  background-image: 
+    linear-gradient(rgba(148, 163, 184, 0.012) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.012) 1px, transparent 1px),
     linear-gradient(180deg, #05070b 0%, #070b12 100%);
+  background-size: 48px 48px, 48px 48px, 100% 100%;
+  background-attachment: fixed, fixed, scroll;
   color: #f8fafc;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

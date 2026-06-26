@@ -2,14 +2,24 @@ import { motion } from 'framer-motion'
 import { fadeUp } from '../../lib/animations'
 import { useEffect, useState } from 'react'
 import { getPublicProjects } from '../../services/projectService'
+import SpotlightCard from '../ui/SpotlightCard'
 
-// Architecture diagram component
-function ArchDiagram({ lines }) {
+// Custom terminal-like frame for architecture diagram
+function TerminalFrame({ lines, filename = 'architecture.log' }) {
   return (
-    <div className="rounded border border-accent/15 bg-ink/80 p-4 font-mono text-[11px] leading-6 text-accent/70">
-      {lines.map((line, i) => (
-        <div key={i}>{line}</div>
-      ))}
+    <div className="rounded-lg border border-line bg-ink/90 shadow-panel overflow-hidden">
+      {/* Console Tab Bar */}
+      <div className="flex items-center gap-1.5 border-b border-line/40 bg-panel/60 px-4 py-2">
+        <span className="h-1.5 w-1.5 rounded-full bg-red-500/30" />
+        <span className="h-1.5 w-1.5 rounded-full bg-yellow-500/30" />
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500/30" />
+        <span className="ml-3 font-mono text-[9px] text-muted/40">{filename}</span>
+      </div>
+      <div className="p-4 font-mono text-[10px] leading-5 text-accent/60 overflow-x-auto whitespace-pre">
+        {lines.map((line, i) => (
+          <div key={i}>{line}</div>
+        ))}
+      </div>
     </div>
   )
 }
@@ -84,74 +94,6 @@ const caseStudyFallbacks = [
   },
 ]
 
-function CaseStudyCard({ study }) {
-  return (
-    <motion.article
-      className="border border-line bg-panel/60 transition-colors duration-300 hover:border-accent/30"
-      variants={fadeUp}
-    >
-      {/* Header */}
-      <div className="border-b border-line p-8 lg:p-10">
-        <p className="mb-3 font-mono text-xs uppercase tracking-[0.3em] text-accent/60">
-          Case Study
-        </p>
-        <h3 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-          {study.title}
-        </h3>
-      </div>
-
-      <div className="grid gap-0 lg:grid-cols-2">
-        {/* Left: Challenge + Tradeoffs + Wins */}
-        <div className="border-b border-line p-8 lg:border-b-0 lg:border-r lg:p-10">
-          <div className="mb-8">
-            <p className="mb-3 text-xs uppercase tracking-[0.3em] text-muted">The Challenge</p>
-            <p className="text-sm leading-7 text-muted">{study.challenge}</p>
-          </div>
-
-          <div className="mb-8">
-            <p className="mb-3 text-xs uppercase tracking-[0.3em] text-muted">
-              Design Tradeoffs
-            </p>
-            <p className="text-sm leading-7 text-muted">{study.tradeoffs}</p>
-          </div>
-
-          <div>
-            <p className="mb-3 text-xs uppercase tracking-[0.3em] text-muted">Technical Wins</p>
-            <ul className="space-y-2">
-              {study.wins.map((win) => (
-                <li key={win} className="flex items-start gap-3 text-sm text-foreground/80">
-                  <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-                  {win}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        {/* Right: Architecture */}
-        <div className="p-8 lg:p-10">
-          <p className="mb-4 text-xs uppercase tracking-[0.3em] text-muted">
-            System Architecture
-          </p>
-          <ArchDiagram lines={study.architecture} />
-
-          {/* Stack Tags */}
-          <div className="mt-8 flex flex-wrap gap-2">
-            {study.tags.map((tag) => (
-              <span
-                key={tag}
-                className="border border-line bg-ink px-2.5 py-1 font-mono text-[11px] tracking-wide text-muted"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        </div>
-      </div>
-    </motion.article>
-  )
-}
-
 export default function FeaturedCaseStudies() {
   const [featuredProjects, setFeaturedProjects] = useState([])
   const [isLoading, setIsLoading] = useState(true)
@@ -201,7 +143,7 @@ export default function FeaturedCaseStudies() {
   return (
     <motion.section
       id="featured-projects"
-      className="scroll-mt-24 py-20 sm:py-24"
+      className="scroll-mt-24 py-16 sm:py-20"
       aria-labelledby="case-studies-title"
       variants={fadeUp}
       initial="hidden"
@@ -211,35 +153,134 @@ export default function FeaturedCaseStudies() {
       {/* Header */}
       <div className="mb-16 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="mb-3 text-xs uppercase tracking-[0.38em] text-muted">
-            Featured Work
+          <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.3em] text-muted/50">
+            SYS // SYSTEM_ARCH_CASE_STUDIES
           </p>
           <h2
             id="case-studies-title"
-            className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl"
+            className="text-3xl font-extrabold tracking-tighter text-foreground sm:text-4xl"
           >
-            Case Studies
+            Featured Case Studies
           </h2>
         </div>
         {!isLoading && (
-          <p className="font-mono text-xs text-muted/60">
-            {featuredProjects.length > 0 ? `${featuredProjects.length} featured project(s) loaded` : 'Showing architecture studies'}
+          <p className="font-mono text-[10px] text-muted/40">
+            {featuredProjects.length > 0 ? `// ${featuredProjects.length} records loaded` : '// static fallbacks loaded'}
           </p>
         )}
       </div>
 
-      {/* Cards */}
-      <motion.div
-        className="space-y-6"
-        variants={{ visible: { transition: { staggerChildren: 0.15 } }, hidden: {} }}
-        initial="hidden"
-        whileInView="visible"
-        viewport={{ once: true, amount: 0.05 }}
-      >
-        {studies.map((study) => (
-          <CaseStudyCard key={study.slug} study={study} />
-        ))}
-      </motion.div>
+      {/* Bento Grid Composition */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Primary Case Study (Index 0) */}
+        {studies[0] && (
+          <motion.div className="lg:col-span-2" variants={fadeUp}>
+            <SpotlightCard className="h-full flex flex-col justify-between p-0" containerClassName="h-full">
+              {/* Header */}
+              <div className="border-b border-line/50 p-6 sm:p-8">
+                <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.25em] text-accent">
+                  SYS // PRIMARY_CASE_STUDY
+                </p>
+                <h3 className="text-xl font-bold tracking-tighter text-foreground sm:text-2xl">
+                  {studies[0].title}
+                </h3>
+              </div>
+
+              <div className="grid gap-6 p-6 sm:grid-cols-2 sm:p-8">
+                {/* Left: Content */}
+                <div className="flex flex-col justify-between space-y-6">
+                  <div>
+                    <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.2em] text-muted/40">The Challenge</p>
+                    <p className="text-xs leading-6 text-muted max-w-sm">{studies[0].challenge}</p>
+                  </div>
+                  <div>
+                    <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.2em] text-muted/40">Design Tradeoffs</p>
+                    <p className="text-xs leading-6 text-muted max-w-sm">{studies[0].tradeoffs}</p>
+                  </div>
+                  <div>
+                    <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.2em] text-muted/40">Technical Wins</p>
+                    <ul className="space-y-1.5">
+                      {studies[0].wins.map((win) => (
+                        <li key={win} className="flex items-start gap-2 text-xs text-foreground/80">
+                          <span className="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-accent/60" />
+                          {win}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Right: Architecture & Tech */}
+                <div className="flex flex-col justify-between space-y-6">
+                  <div>
+                    <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.2em] text-muted/40">System Architecture</p>
+                    <TerminalFrame lines={studies[0].architecture} filename="cms_architecture.log" />
+                  </div>
+                  <div className="flex flex-wrap gap-1.5 pt-4 border-t border-line/30">
+                    {studies[0].tags.map((tag) => (
+                      <span key={tag} className="border border-line bg-ink/30 px-2 py-0.5 font-mono text-[10px] text-muted/70">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </SpotlightCard>
+          </motion.div>
+        )}
+
+        {/* Secondary Case Study (Index 1) */}
+        {studies[1] && (
+          <motion.div className="lg:col-span-1" variants={fadeUp}>
+            <div className="flex h-full flex-col justify-between border border-line bg-panel/30 p-6 sm:p-8 rounded-lg transition-colors duration-200 hover:border-line/60">
+              <div>
+                {/* Header */}
+                <div className="border-b border-line/40 pb-4 mb-6">
+                  <p className="mb-2 font-mono text-[9px] uppercase tracking-[0.25em] text-muted/50">
+                    SYS // SUPPORTING_STUDY
+                  </p>
+                  <h3 className="text-lg font-bold tracking-tighter text-foreground">
+                    {studies[1].title}
+                  </h3>
+                </div>
+
+                {/* Content */}
+                <div className="space-y-6">
+                  <div>
+                    <p className="mb-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-muted/40">The Challenge</p>
+                    <p className="text-xs leading-5 text-muted">{studies[1].challenge}</p>
+                  </div>
+                  <div>
+                    <p className="mb-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-muted/40">Technical Wins</p>
+                    <ul className="space-y-1">
+                      {studies[1].wins.map((win) => (
+                        <li key={win} className="flex items-start gap-2 text-xs text-foreground/80">
+                          <span className="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-muted/30" />
+                          {win}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="mb-1.5 font-mono text-[9px] uppercase tracking-[0.2em] text-muted/40">Architecture</p>
+                    <TerminalFrame lines={studies[1].architecture} filename="api_design.log" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Stack Tags */}
+              <div className="flex flex-wrap gap-1.5 mt-6 pt-4 border-t border-line/30">
+                {studies[1].tags.map((tag) => (
+                  <span key={tag} className="border border-line bg-ink/20 px-2 py-0.5 font-mono text-[10px] text-muted/60">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </div>
     </motion.section>
   )
 }
+

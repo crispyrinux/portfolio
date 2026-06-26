@@ -26,7 +26,7 @@ export default function IdentityPrinciples() {
   return (
     <motion.section
       id="about"
-      className="scroll-mt-24 py-20 sm:py-24"
+      className="scroll-mt-24 py-16 sm:py-20"
       aria-labelledby="identity-title"
       variants={fadeUp}
       initial="hidden"
@@ -34,19 +34,19 @@ export default function IdentityPrinciples() {
       viewport={{ once: true, amount: 0.1 }}
     >
       {/* Identity Block */}
-      <div className="mb-20 border-l-2 border-accent/60 pl-8">
-        <p className="mb-4 text-xs uppercase tracking-[0.38em] text-accent">
-          Identity
+      <div className="mb-24 border-l-2 border-accent/40 pl-8">
+        <p className="mb-4 font-mono text-[10px] uppercase tracking-[0.3em] text-accent/80">
+          SYS // IDENTITY
         </p>
         <h2
           id="identity-title"
-          className="max-w-4xl text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl lg:text-6xl"
+          className="max-w-3xl text-4xl font-extrabold leading-[1.1] tracking-tighter text-foreground sm:text-5xl lg:text-6xl"
         >
           I engineer backend systems.
           <br />
-          <span className="text-muted font-normal">Not websites.</span>
+          <span className="text-muted font-light">Not websites.</span>
         </h2>
-        <p className="mt-8 max-w-2xl text-base leading-8 text-muted">
+        <p className="mt-8 max-w-xl text-sm leading-7 text-muted">
           Computer Science student at Universitas Gadjah Mada with a focused practice in API
           design, relational database architecture, and server-side systems engineering. My
           interest lies in building backend infrastructure that is predictable, correct, and
@@ -56,11 +56,11 @@ export default function IdentityPrinciples() {
 
       {/* Operating Principles */}
       <div>
-        <p className="mb-10 text-xs uppercase tracking-[0.38em] text-muted">
-          Operating Principles
+        <p className="mb-8 font-mono text-[10px] uppercase tracking-[0.3em] text-muted/50">
+          SYS // OPERATING_PRINCIPLES
         </p>
         <motion.div
-          className="grid gap-px border border-line bg-line sm:grid-cols-3"
+          className="grid gap-px border border-line bg-line/60 sm:grid-cols-3"
           variants={staggerContainer}
           initial="hidden"
           whileInView="visible"
@@ -69,19 +69,17 @@ export default function IdentityPrinciples() {
           {principles.map((p) => (
             <motion.div
               key={p.index}
-              className="group relative bg-ink p-8 transition-colors duration-300 hover:bg-panel sm:p-10"
+              className="group relative bg-ink/90 p-8 transition-colors duration-200 hover:bg-panel sm:p-10"
               variants={fadeUp}
             >
-              <span className="mb-6 block font-mono text-xs text-accent/50">{p.index}</span>
-              <h3 className="mb-4 text-xl font-semibold tracking-tight text-foreground">
+              <span className="mb-6 block font-mono text-xs text-accent/40">{p.index}</span>
+              <h3 className="mb-4 text-lg font-semibold tracking-tight text-foreground">
                 {p.title}
               </h3>
-              <p className="text-sm leading-7 text-muted">{p.body}</p>
-              <p className="mt-6 font-mono text-[11px] tracking-[0.15em] text-accent/60">
+              <p className="text-xs leading-6 text-muted">{p.body}</p>
+              <p className="mt-6 font-mono text-[10px] tracking-[0.1em] text-accent/50">
                 {p.tag}
               </p>
-              {/* Subtle hover accent bar */}
-              <span className="absolute bottom-0 left-0 h-0.5 w-0 bg-accent/50 transition-all duration-500 group-hover:w-full" />
             </motion.div>
           ))}
         </motion.div>
