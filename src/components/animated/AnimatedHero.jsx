@@ -36,7 +36,7 @@ const getOptimalPixelRatio = () => {
 
   if (isMobile) return 1.0
   if (isLowEnd) return 1.0
-  return Math.min(dpr, 1.5)
+  return Math.min(dpr, 1.25)
 }
 
 const checkPostProcessingSupport = () => {
@@ -439,6 +439,15 @@ export default function AnimatedHero() {
 
       if (progressFillRef.current) {
         progressFillRef.current.style.transform = `scaleX(${Math.max(progress, 0.04)})`
+      }
+
+      // Cinematic fade-out transition near the end of the scroll timeline (0.8 to 1.0)
+      const fadeProgress = Math.min(Math.max((progress - 0.8) / 0.2, 0), 1)
+      const stageOpacity = 1 - fadeProgress
+      
+      const stageElement = container.querySelector('.hero-stage')
+      if (stageElement) {
+        stageElement.style.opacity = stageOpacity
       }
     }
 

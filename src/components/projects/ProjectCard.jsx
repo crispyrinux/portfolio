@@ -31,6 +31,14 @@ function ThumbnailPlaceholder({ title, message = 'Project media' }) {
   )
 }
 
+const getOptimizedImageUrl = (url) => {
+  if (!url) return url
+  if (url.includes('supabase.co/storage/v1/object/public/')) {
+    return url.replace('/object/public/', '/render/image/public/') + '?width=480&quality=80'
+  }
+  return url
+}
+
 function ProjectCardThumbnail({ title, thumbnailUrl }) {
   const [hasImageError, setHasImageError] = useState(false)
   const shouldShowImage = Boolean(thumbnailUrl && thumbnailUrl !== '#' && !hasImageError)
@@ -46,10 +54,12 @@ function ProjectCardThumbnail({ title, thumbnailUrl }) {
           alt={`${title} project thumbnail`}
           className="absolute inset-0 h-full w-full object-cover"
           loading="lazy"
+          decoding="async"
+          fetchpriority="low"
           onError={() => {
             setHasImageError(true)
           }}
-          src={thumbnailUrl}
+          src={getOptimizedImageUrl(thumbnailUrl)}
         />
       ) : null}
     </div>

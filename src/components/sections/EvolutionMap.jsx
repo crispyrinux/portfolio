@@ -7,7 +7,7 @@ const phases = [
     period: '2023 — Early 2024',
     title: 'Core Systems & CS Foundations',
     description:
-      'Grounding in computer science fundamentals at Universitas Gadjah Mada: algorithms and data structures, relational database theory (normalization, ACID, indexing), computer networks, and operating systems. The conceptual layer that everything else is built on.',
+      'Grounding in computer science fundamentals at Universitas Gadjah Mada: algorithms and data structures, relational database theory, computer networks, and operating systems.',
     milestones: [
       'Relational database theory & normalization',
       'Algorithms & computational complexity',
@@ -21,7 +21,7 @@ const phases = [
     period: 'Mid 2024 — Early 2025',
     title: 'API Engineering & Backend Patterns',
     description:
-      'Hands-on construction of REST APIs from first principles — routing, middleware design, input validation, JWT authentication, and structured error handling. Adopted Prisma ORM and PostgreSQL for data access; enforced TypeScript throughout.',
+      'Hands-on construction of REST APIs from first principles — routing, middleware design, input validation, JWT authentication, and structured error handling.',
     milestones: [
       'RESTful API design & resource modeling',
       'JWT auth & token lifecycle management',
@@ -35,7 +35,7 @@ const phases = [
     period: '2025 — Present',
     title: 'Scalability, Infrastructure & Systems Thinking',
     description:
-      'Expanding from local development to production-aware infrastructure: containerization with Docker, deployment automation with GitHub Actions, cloud VM configuration on AWS EC2, and service reliability patterns including structured logging and graceful error surfaces.',
+      'Expanding from local development to production-aware infrastructure: Docker, GitHub Actions, AWS EC2, structured logging, and graceful error surfaces.',
     milestones: [
       'Docker containerization & environment parity',
       'AWS EC2 provisioning & Linux server hardening',
@@ -49,36 +49,33 @@ const phases = [
 export default function EvolutionMap() {
   return (
     <motion.section
-      className="scroll-mt-24 py-16 sm:py-20"
+      id="evolution"
+      className="scroll-mt-24 py-32 sm:py-40"
       aria-labelledby="evolution-title"
       variants={fadeUp}
       initial="hidden"
       whileInView="visible"
       viewport={{ once: true, amount: 0.1 }}
     >
-      {/* Header */}
-      <div className="mb-16">
-        <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.3em] text-muted/50">SYS // ENGINEERING_JOURNEY</p>
+      <div className="mb-20 max-w-3xl">
         <h2
           id="evolution-title"
-          className="text-3xl font-extrabold tracking-tighter text-foreground sm:text-4xl"
+          className="text-4xl font-semibold tracking-[-0.03em] text-foreground sm:text-5xl"
         >
           Evolution & Growth Map
         </h2>
-        <p className="mt-3 max-w-xl text-xs leading-6 text-muted">
+        <p className="mt-5 text-base leading-7 text-muted max-w-2xl">
           A phased view of technical development — structured like an engineering roadmap, not a CV.
         </p>
       </div>
 
-      {/* Git-branch-style timeline */}
       <div className="relative">
-        {/* Vertical dashed line */}
         <div
-          className="absolute left-[7px] top-0 h-full w-px border-l border-dashed border-line sm:left-[11px]"
+          className="absolute left-[7px] top-0 h-full w-px bg-borderSubtle sm:left-[11px]"
           aria-hidden="true"
         />
 
-        <div className="space-y-0">
+        <div className="space-y-12">
           {phases.map((phase, idx) => (
             <motion.div
               key={phase.phase}
@@ -87,14 +84,13 @@ export default function EvolutionMap() {
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, amount: 0.3 }}
-              transition={{ delay: idx * 0.1 }}
+              transition={{ delay: idx * 0.08 }}
             >
-              {/* Branch node */}
               <div
                 className={`absolute left-0 top-1.5 flex h-[15px] w-[15px] items-center justify-center rounded-full border sm:h-[23px] sm:w-[23px] ${
                   phase.status === 'active'
                     ? 'border-accent bg-accent/10'
-                    : 'border-line bg-ink'
+                    : 'border-borderDefault bg-ink'
                 }`}
                 aria-hidden="true"
               >
@@ -103,34 +99,28 @@ export default function EvolutionMap() {
                 )}
               </div>
 
-              {/* Content card */}
-              <div
-                className={`mb-0 border-b border-line/40 py-8 ${
-                  idx === phases.length - 1 ? 'border-b-0' : ''
-                }`}
-              >
-                <div className="mb-3 flex flex-wrap items-center gap-3">
-                  <span className="font-mono text-[10px] text-accent/70">{phase.phase}</span>
-                  <span className="font-mono text-[10px] text-muted/30">·</span>
-                  <span className="font-mono text-[10px] text-muted/50">{phase.period}</span>
+              <div className="py-2">
+                <div className="mb-4 flex flex-wrap items-center gap-3">
+                  <span className="text-sm font-medium text-accent/80">{phase.phase}</span>
+                  <span className="text-sm text-faint">·</span>
+                  <span className="text-sm text-muted">{phase.period}</span>
                   {phase.status === 'active' && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full border border-accent/20 bg-accent/5 px-2 py-0.5 font-mono text-[9px] uppercase tracking-wider text-accent/80">
+                    <span className="rounded-md bg-accent/10 px-2.5 py-0.5 text-[11px] font-medium uppercase tracking-[0.08em] text-accent">
                       Active
                     </span>
                   )}
                 </div>
 
-                <h3 className="mb-3 text-base font-bold tracking-tight text-foreground">
+                <h3 className="mb-4 text-2xl font-medium tracking-tight text-foreground">
                   {phase.title}
                 </h3>
 
-                <p className="mb-5 max-w-xl text-xs leading-6 text-muted">{phase.description}</p>
+                <p className="mb-6 max-w-2xl text-sm leading-7 text-muted">{phase.description}</p>
 
-                {/* Milestones */}
-                <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid gap-3 sm:grid-cols-2">
                   {phase.milestones.map((m) => (
-                    <div key={m} className="flex items-start gap-2 text-xs text-muted/80">
-                      <span className="mt-[6px] h-1 w-1 shrink-0 rounded-full bg-accent/40" />
+                    <div key={m} className="flex items-start gap-3 text-sm text-muted">
+                      <span className="mt-[9px] h-1.5 w-1.5 shrink-0 rounded-full bg-accent/60" />
                       {m}
                     </div>
                   ))}
@@ -141,28 +131,25 @@ export default function EvolutionMap() {
         </div>
       </div>
 
-      {/* Education footnote */}
       <motion.div
-        className="mt-14 border border-line bg-panel/20 p-6 sm:p-8 rounded-lg"
+        className="mt-20 border-t border-borderSubtle pt-12"
         variants={fadeUp}
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.3 }}
       >
-        <div className="grid gap-6 sm:grid-cols-[auto_1fr]">
+        <div className="grid gap-6 sm:grid-cols-[160px_1fr]">
+          <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-faint pt-1">Academic Anchor</p>
           <div>
-            <p className="font-mono text-[10px] uppercase tracking-[0.25em] text-muted/40">Academic Anchor</p>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-foreground">
+            <p className="text-lg font-medium text-foreground">
               Computer Science — Universitas Gadjah Mada
             </p>
-            <p className="mt-2 text-xs leading-5 text-muted max-w-xl">
-              Core curriculum covering database systems, software engineering, algorithms, data structures, and computer networks. The academic and self-directed tracks run in parallel — theory reinforcing practice.
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-muted">
+              Core curriculum covering database systems, software engineering, algorithms, data structures, and computer networks.
             </p>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-5 flex flex-wrap gap-2">
               {['Database Systems', 'Software Engineering', 'Algorithms & Data Structures', 'Computer Networks'].map((c) => (
-                <span key={c} className="border border-line bg-ink/30 px-2 py-0.5 font-mono text-[9px] text-muted/60">
+                <span key={c} className="rounded-md bg-panelStrong px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.08em] text-faint">
                   {c}
                 </span>
               ))}

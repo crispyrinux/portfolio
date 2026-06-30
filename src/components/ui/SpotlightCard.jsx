@@ -1,34 +1,46 @@
-import React, { useRef, useState } from 'react'
+import React, { useRef } from 'react'
 
-export default function SpotlightCard({
+const SpotlightCard = React.memo(({
   children,
   className = '',
   containerClassName = '',
-  spotlightColor = 'rgba(124, 140, 255, 0.025)',
-  borderSpotlightColor = 'rgba(124, 140, 255, 0.25)',
+  spotlightColor = 'rgba(0, 85, 255, 0.02)',
+  borderSpotlightColor = 'rgba(0, 85, 255, 0.2)',
   ...props
-}) {
+}) => {
   const containerRef = useRef(null)
-  const [position, setPosition] = useState({ x: 0, y: 0 })
-  const [opacity, setOpacity] = useState(0)
 
   const handleMouseMove = (e) => {
-    if (!containerRef.current) return
-    const rect = containerRef.current.getBoundingClientRect()
-    setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top })
+    const container = containerRef.current
+    if (!container) return
+    const rect = container.getBoundingClientRect()
+    container.style.setProperty('--mouse-x', `${e.clientX - rect.left}px`)
+    container.style.setProperty('--mouse-y', `${e.clientY - rect.top}px`)
+  }
+
+  const handleMouseEnter = () => {
+    const container = containerRef.current
+    if (!container) return
+    container.style.setProperty('--opacity', '1')
+  }
+
+  const handleMouseLeave = () => {
+    const container = containerRef.current
+    if (!container) return
+    container.style.setProperty('--opacity', '0')
   }
 
   return (
     <div
       ref={containerRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setOpacity(1)}
-      onMouseLeave={() => setOpacity(0)}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       className={`relative overflow-hidden rounded-lg border border-line bg-panel/30 p-[1px] transition-all duration-300 hover:border-transparent ${containerClassName}`.trim()}
       style={{
-        '--mouse-x': `${position.x}px`,
-        '--mouse-y': `${position.y}px`,
-        '--opacity': opacity,
+        '--mouse-x': '0px',
+        '--mouse-y': '0px',
+        '--opacity': '0',
         '--spotlight-color': spotlightColor,
         '--border-spotlight-color': borderSpotlightColor,
       }}
@@ -57,4 +69,8 @@ export default function SpotlightCard({
       </div>
     </div>
   )
-}
+})
+
+SpotlightCard.displayName = 'SpotlightCard'
+
+export default SpotlightCard

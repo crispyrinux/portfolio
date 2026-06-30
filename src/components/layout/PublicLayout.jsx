@@ -1,10 +1,14 @@
 import Footer from './Footer'
 import Navbar from './Navbar'
 import Container from '../ui/Container'
+import ShaderBackground from '../ui/ShaderBackground'
 
 export default function PublicLayout({ children }) {
   return (
-    <div className="min-h-screen bg-ink text-foreground">
+    <div className="relative min-h-screen text-foreground selection:bg-accent/20">
+      {/* Viewport-sized Fixed Global Aurora Canvas Background */}
+      <ShaderBackground />
+
       <div className="flex min-h-screen flex-col">
         <Navbar />
         <main id="top" className="flex-1">

@@ -3,10 +3,9 @@ import Hero from '../components/sections/Hero'
 import IdentityPrinciples from '../components/sections/IdentityPrinciples'
 import CoreCapabilities from '../components/sections/CoreCapabilities'
 import FeaturedCaseStudies from '../components/sections/FeaturedCaseStudies'
-import SandboxLab from '../components/sections/SandboxLab'
+import EngineeringArchive from '../components/sections/EngineeringArchive'
 import EvolutionMap from '../components/sections/EvolutionMap'
 import SystemHandshake from '../components/sections/SystemHandshake'
-import SectionDivider from '../components/ui/SectionDivider'
 
 export default function Home() {
   return (
@@ -14,32 +13,29 @@ export default function Home() {
       {/* 1. Cinematic Hero — unchanged */}
       <Hero />
 
-      {/* 2. Identity & Operating Principles — replaces About + CurrentFocus + EngineeringDirection */}
+      {/* Hero-to-Identity transition zone (atmospheric light) */}
+      <div className="relative h-[150px] overflow-hidden pointer-events-none" aria-hidden="true">
+        {/* Dual purple/blue atmospheric lighting */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(0,85,255,0.03),transparent_70%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(139,92,246,0.02),transparent_60%)]" />
+      </div>
+
+      {/* 2. Identity & Operating Principles */}
       <IdentityPrinciples />
 
-      <SectionDivider label="SYS_DOMAINS" value="0x01" />
-
-      {/* 3. Core Capabilities & Stack — replaces CurrentlyLearning */}
-      <CoreCapabilities />
-
-      <SectionDivider label="SYS_CASE_STUDIES" value="0x02" />
-
-      {/* 4. Featured Case Studies — replaces FeaturedProjects */}
+      {/* 3. Featured Case Studies */}
       <FeaturedCaseStudies />
 
-      <SectionDivider label="SYS_SANDBOX" value="0x03" />
+      {/* 4. Engineering Archive */}
+      <EngineeringArchive />
 
-      {/* 5. The Sandbox Lab — replaces ProjectLab */}
-      <SandboxLab />
+      {/* 5. Engineering Philosophy (Core Capabilities) */}
+      <CoreCapabilities />
 
-      <SectionDivider label="SYS_JOURNEY" value="0x04" />
-
-      {/* 6. Evolution & Growth Map — replaces Experience + Education */}
+      {/* 6. Evolution & Growth Map */}
       <EvolutionMap />
 
-      <SectionDivider label="SYS_CONTACT" value="0x05" />
-
-      {/* 7. System Handshake — replaces Contact */}
+      {/* 7. System Handshake (Contact) */}
       <SystemHandshake />
     </PublicLayout>
   )
